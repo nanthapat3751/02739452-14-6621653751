@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<title>14_6621653751_sport</title>
+<title>14_6621653751_summary</title>
 <style>
   @page { size: A4; margin: 11mm 12mm; }
   body { font-family: 'Leelawadee UI', 'Tahoma', sans-serif; font-size: 9.6pt; line-height: 1.36; color: #111; margin: 0; }
@@ -41,7 +41,7 @@
 <h2>1. ภาพรวมงานแต่ละส่วน</h2>
 <p><b>แหล่งข้อมูล 3 แหล่ง:</b>
 (1) <b>Football-Data API</b> (REST, ต้องใช้ API key): ตารางคะแนน ดาวซัลโว และผลการแข่งขันของ 5 ลีกใหญ่ยุโรป;
-(2) <b>Siamsport</b>: web scraping ตาราง HTML <code>&lt;table&gt;</code> ด้วย requests + BeautifulSoup ได้ตารางคะแนน 5 ลีกยุโรปที่มีชื่อทีมภาษาไทย;
+(2) <b>Siamsport</b>: web scraping ตาราง HTML <code>&lt;table&gt;</code> ด้วย requests + BeautifulSoup ได้ตารางคะแนน 5 ลีกยุโรปและไทยลีก 1 (ชื่อทีมภาษาไทย);
 (3) <b>Ballthai</b>: หน้าเว็บโหลดข้อมูลด้วย JavaScript จึงดึง JSON endpoint ที่หน้าเว็บเรียกใช้ด้วย requests (ไม่ใช้ Selenium) ได้ตารางคะแนนและดาวซัลโวไทยลีก 1–2.
 ตรวจ robots.txt แล้ว ทั้งสองเว็บอนุญาตทั้งหมด ระบบเว้นช่วงระหว่าง request และไม่เก็บข้อมูลส่วนบุคคล (ไม่มีวันเกิดและรูปภาพ) ตาม PDPA</p>
 
@@ -50,7 +50,7 @@
   <tr><td>ระดับ 1 ขั้นต่ำ</td><td>DAG <code>extract → transform → load</code> เก็บลง PostgreSQL แล้วแสดงบนเว็บเป็นตารางและกราฟ</td><td class="ok">ผ่าน</td></tr>
   <tr><td>ระดับ 2 มาตรฐาน</td><td>3 แหล่งรันขนานกันใน <b>TaskGroup</b> ของแต่ละแหล่ง แปลงเป็น schema เดียวกัน (league_code, season, team, played, won, draw, lost, gf, ga, gd, points) และใช้ <b>UPSERT</b> (<code>INSERT … ON CONFLICT DO UPDATE</code>) จึงรันซ้ำแล้วจำนวนแถวไม่เพิ่ม (ทดสอบแล้ว 130/100 แถวเท่าเดิม) เว็บมี <b>KPI</b> และ<b>ตัวกรอง</b>ฤดูกาล แหล่งข้อมูล และการค้นหาทีม/นักเตะ</td><td class="ok">ผ่าน</td></tr>
   <tr><td>ระดับ 3 ท้าทาย</td><td>• <b>แหล่งล่มแล้วไปต่อได้:</b> <code>merge_dedup</code> ตั้ง <code>trigger_rule=all_done</code> และอ่านเฉพาะแถวของ run_id รอบนี้ (ทดสอบด้วย conf <code>{"fail_sources":["siamsport"]}</code>)<br>
-  • <b>ตัดรายการซ้ำข้ามแหล่ง:</b> Football-Data กับ Siamsport มีทีมเดียวกันแต่ชื่อต่างภาษา (Man City / แมนซิตี้) จึงจับคู่จากตาราง <code>team_alias</code>, สถิติที่ตรงกันทุกค่า และอันดับ+แต้ม แล้วรวมเป็นแถวเดียว<br>
+  • <b>ตัดรายการซ้ำข้ามแหล่ง:</b> ไทยลีก 1 มีทั้งใน Ballthai และ Siamsport (ลีกยุโรปมีทั้งใน Football-Data และ Siamsport) แต่ชื่อทีมเขียนไม่ตรงกัน เช่น "พีที ประจวบ เอฟซี" / "ประจวบ เอฟซี" และ "Man City" / "แมนซิตี้" จึงจับคู่ตามลำดับ: ตาราง <code>team_alias</code> → ชื่อตรงกันหรือชื่อหนึ่งอยู่ในอีกชื่อ → สถิติตรงกันทุกค่า → อันดับ+แต้ม แล้วรวมเป็นแถวเดียว (ทดสอบแล้ว: ไทยลีก 1 ตัดซ้ำได้ครบ 16 ทีม จำนวนแถวไม่เพิ่ม และเมื่อ Ballthai ล่มก็ยังใช้ key เดิม)<br>
   • <b>ตรวจคุณภาพแล้วแตกเส้นทาง:</b> <code>quality_check</code> (BranchPythonOperator) ตรวจว่าแข่ง = ชนะ+เสมอ+แพ้, ผลต่างประตูถูกต้อง, ไม่มีค่าติดลบ, แต้ม ≤ 3×แข่ง, สกอร์ไม่ว่าง และรวม ≥ 100 แถว ถ้าผ่านไป <code>dq_passed</code> ถ้าไม่ผ่านไป <code>quarantine_bad_rows</code> ซึ่งย้ายแถวเสียไปตาราง <code>dq_quarantine</code> แล้ว publish เฉพาะแถวที่ผ่าน</td><td class="ok">ผ่าน</td></tr>
   <tr><td>โบนัส</td><td>ทำทั้งสองอย่าง: <b>Dynamic Task Mapping</b> (<code>extract.expand(league_code=[5 ลีก])</code>) และ<b>หน้าสถานะ pipeline</b> บนเว็บ (/pipeline)</td><td class="ok">ผ่าน</td></tr>
 </table>
@@ -71,7 +71,9 @@
 <p><b>อาการ:</b> HTML ที่ดึงมามีแต่ <code>&lt;div class="standing-json-block" data-league="t1"&gt;Loading...</code> &nbsp;<b>หาสาเหตุ:</b> เปิดไฟล์ JS ของหน้าเว็บ (<code>standings_json.js</code>, <code>topscorers_json.js</code>) แล้วพบว่าข้อมูลถูกโหลดภายหลังด้วย <code>fetch()</code> จาก <code>svc.ballthai.com/api/...</code> &nbsp;<b>วิธีแก้:</b> โจทย์ห้ามใช้ Selenium จึงเรียก JSON endpoint เดียวกันด้วย requests (หลังตรวจ robots.txt) และเลือกเฉพาะ stage ของฤดูกาลปัจจุบัน เพราะ API คืนทั้งฤดูกาลก่อนและฤดูกาลนี้ ทำให้ทีมซ้ำ</p></div>
 <div class="prob"><p><b>ปัญหา 3: task <code>extract</code> ใน TaskGroup ไม่ได้รอ <code>create_tables</code></b></p>
 <p><b>อาการ:</b> ใน Graph view เส้นจาก create_tables ชี้ไปที่ <code>load</code> แทนต้น group จึงเสี่ยงที่ extract จะรันก่อนสร้างตาราง &nbsp;<b>หาสาเหตุ:</b> ฟังก์ชัน <code>@task_group</code> ที่ return ค่า (XComArg ของ load) ทำให้ <code>&gt;&gt;</code> ผูกกับ task นั้นแทน group &nbsp;<b>วิธีแก้:</b> ให้ group ไม่ return ค่า เพื่อให้ dependency ผูกกับทั้ง group แล้วตรวจ Graph view ซ้ำ</p></div>
-<div class="prob"><p><b>ปัญหา 4: Football-Data ตอบ 403 และจำกัดที่ 10 requests/นาที</b></p>
+<div class="prob"><p><b>ปัญหา 4: task ไทยลีกของ Siamsport fail แม้แก้โค้ดแล้ว</b></p>
+<p><b>อาการ:</b> หลังเพิ่มไทยลีก 1 ใน Siamsport, task <code>siamsport.extract[5]</code> fail และ dedup_removed = 0 &nbsp;<b>หาสาเหตุ:</b> เปิด log ของ task ใน <code>logs/…/map_index=5</code> พบ <code>KeyError</code> จากโค้ดเก่า เพราะ LocalExecutor fork task จาก scheduler ที่ยัง cache โมดูลเดิมอยู่ หลัง restart ก็ยังเจอ <code>AttributeError: 'NoneType'… group</code> เพราะโลโก้ทีมไทยใช้ชื่อไฟล์แบบ uuid ไม่ใช่ตัวเลข &nbsp;<b>วิธีแก้:</b> restart scheduler หลังแก้ไฟล์ helper และแก้ regex ให้รับชื่อไฟล์ทุกแบบ จากนั้นจับคู่ได้ครบ 16 ทีม</p></div>
+<div class="prob"><p><b>ปัญหา 5: Football-Data ตอบ 403 และจำกัดที่ 10 requests/นาที</b></p>
 <p><b>อาการ:</b> เรียก API แล้วได้ <code>403 restricted</code> และเมื่อ 5 ลีกรันขนานกันก็เสี่ยงโดน 429 &nbsp;<b>หาสาเหตุ:</b> อ่านข้อความ error และเอกสาร free tier &nbsp;<b>วิธีแก้:</b> อ่าน API key จาก <code>.env</code> (ไม่ commit), ตั้ง <code>max_active_tis_per_dagrun=1</code> กับ sleep 6.5 วินาที และ retry เมื่อได้ 429 ส่วนกรณีไม่มี key แหล่งนี้จะ fail แต่ DAG ยังรวมอีก 2 แหล่งต่อได้ ซึ่งเป็นตัวอย่างของระดับ 3</p></div>
 
 <h2>3. การวางแผนและจัดลำดับงาน</h2>
@@ -81,7 +83,8 @@
   <tr><td>13:35–13:45</td><td>เขียนฟังก์ชัน extract/transform ของ 3 แหล่ง แยกไว้ในไฟล์ <code>football_sources.py</code> เพื่อทดสอบนอก Airflow ได้เร็ว</td></tr>
   <tr><td>13:45–13:50</td><td>เขียน DAG และ docker-compose รันครั้งแรกให้ผ่านระดับ 1–3 ทดสอบ UPSERT/แหล่งล่ม/DQ แล้ว <b>commit + push ทันที</b> เพื่อมีงานส่งไว้ก่อน</td></tr>
   <tr><td>13:50–14:05</td><td>ปรับเว็บ dashboard เป็นเมนูแบ่งหน้า เอารหัสผ่านออกจาก compose ให้อ่านจาก .env และทดสอบแบบอาจารย์ (clone ใหม่ → <code>cp .env.example .env</code> → <code>docker compose up</code>)</td></tr>
-  <tr><td>14:05–16:00</td><td>ใส่ Football-Data key ทดสอบการตัดซ้ำข้ามแหล่ง เก็บภาพ เขียน PDF และตรวจรายการส่งงาน</td></tr>
+  <tr><td>14:05–14:25</td><td>เก็บภาพ เขียน PDF และเพิ่มตารางไทยลีก 1 จาก Siamsport เพื่อให้มีข้อมูลซ้ำข้ามแหล่งจริง (Ballthai × Siamsport) โดยไม่ต้องพึ่ง API key</td></tr>
+  <tr><td>14:25–16:00</td><td>ทดสอบกรณีแหล่งล่ม/ตัดซ้ำซ้ำอีกรอบ อัปเดตภาพและ PDF ตรวจรายการส่งงาน และ commit ก่อน 16:00</td></tr>
 </table>
 <p><b>หลักการจัดลำดับ:</b> ทำตามคะแนนจากมากไปน้อย (ระดับ 1: 30 → ระดับ 2: 20 → ระดับ 3: 15 → โบนัส) ให้ระบบรันได้ end-to-end ก่อนค่อยปรับเว็บให้สวย และ commit เป็นระยะเพราะนับเฉพาะ commit ก่อน 16:00</p>
 <p><b>งานที่ตัดออกและเหตุผล:</b>

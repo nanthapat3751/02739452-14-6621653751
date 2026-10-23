@@ -41,6 +41,9 @@ THAI_LEAGUES = {
     "T2": ("t2", "Thai League 2"),
 }
 LEAGUE_NAMES = {k: v[2] for k, v in EURO_LEAGUES.items()} | {k: v[1] for k, v in THAI_LEAGUES.items()}
+# หน้า standings ของ Siamsport (มีทั้ง 5 ลีกยุโรป และไทยลีก 1)
+SS_LEAGUES = {k: f"football-international/{v[1]}" for k, v in EURO_LEAGUES.items()} | {
+    "T1": "football-thailand/thaileague-1"}
 
 
 def season_label(start_year: int) -> str:
@@ -145,13 +148,13 @@ def fd_transform(raw_list: list[dict]) -> dict:
 # ---------------------------------------------------------------------------
 # 2) Siamsport (web scraping HTML)
 # ---------------------------------------------------------------------------
-SS_BASE = "https://www.siamsport.co.th/standings/football-international/{slug}/"
+SS_BASE = "https://www.siamsport.co.th/standings/{path}/"
 
 
 def ss_extract(league_code: str) -> dict:
     """ขูดตาราง <table> จากหน้า standings ของ Siamsport คืนค่าเป็น cell ดิบ (string)"""
-    slug = EURO_LEAGUES[league_code][1]
-    html = _get(SS_BASE.format(slug=slug)).content.decode("utf-8", errors="replace")  # เว็บไม่ส่ง charset
+    slug = SS_LEAGUES[league_code]
+    html = _get(SS_BASE.format(path=slug)).content.decode("utf-8", errors="replace")  # เว็บไม่ส่ง charset
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table")
     if table is None:
@@ -163,7 +166,9 @@ def ss_extract(league_code: str) -> dict:
             continue  # แถวหัวตาราง
         img = tds[1].find("img")
         name = tds[1].find("span", class_="team-name-text")
-        logo_id = re.search(r"/(\d+)\.png", img["src"]).group(1) if img and img.get("src") else None
+        # รหัสทีม = ชื่อไฟล์โลโก้ (เช่น /static/team-logo/9259.png หรือ /static/<uuid>.png)
+        m = re.search(r"/([\w-]+)\.\w+$", img["src"]) if img and img.get("src") else None
+        logo_id = m.group(1) if m else None
         rows.append({
             "cells": [td.get_text(" ", strip=True) for td in tds],
             "team_name": name.get_text(strip=True) if name else tds[1].get_text(" ", strip=True),

@@ -208,7 +208,7 @@ def football_pipeline():
         def load(data):
             return _load_staging(data)
 
-        load(transform(extract.expand(league_code=EURO)))
+        load(transform(extract.expand(league_code=list(fs.SS_LEAGUES))))
 
     # ------------------------------------------------------------------ แหล่งที่ 3
     @task_group(group_id="ballthai")
@@ -233,11 +233,15 @@ def football_pipeline():
     def merge_dedup():
         """
         ใช้เฉพาะแถวที่โหลดในรอบนี้ (run_id ปัจจุบัน) -> แหล่งที่ล่มจะไม่มีแถว แต่แหล่งอื่นยังรวมได้
-        ตัดทีมซ้ำข้ามแหล่ง (football-data vs siamsport ลีกเดียวกัน):
-          1) team_alias ที่เคยจับคู่ไว้แล้ว
-          2) สถิติตรงกันทุกค่า (แข่ง/ชนะ/เสมอ/แพ้/ได้/เสีย/แต้ม) และไม่ซ้ำกับทีมอื่น
-          3) อันดับ + แต้มตรงกัน
-        เมื่อซ้ำ ใช้ตัวเลขจาก football-data (API ทางการ) และเก็บชื่อไทยจาก siamsport
+        ตัดทีมซ้ำข้ามแหล่ง (ทีมเดียวกันในลีกเดียวกัน):
+          - ลีกยุโรป : football-data (หลัก) x siamsport
+          - ไทยลีก 1  : ballthai (หลัก) x siamsport
+        ลำดับการจับคู่ siamsport -> แหล่งหลัก
+          1) team_alias ที่เคยจับคู่ไว้แล้ว (key คงที่ทุกรอบ แม้แหล่งหลักล่ม)
+          2) ชื่อทีมตรงกัน/ชื่อหนึ่งอยู่ในอีกชื่อ เช่น 'ประจวบ เอฟซี' ~ 'พีที ประจวบ เอฟซี'
+          3) สถิติตรงกันทุกค่า (แข่ง/ชนะ/เสมอ/แพ้/ได้/เสีย/แต้ม) และไม่ซ้ำกับทีมอื่น
+          4) อันดับ + แต้มตรงกัน
+        เมื่อซ้ำ ใช้ตัวเลขจากแหล่งหลัก และเก็บชื่อไทยจาก siamsport
         """
         run_id = get_current_context()["run_id"]
         hook = _hook()
@@ -256,54 +260,58 @@ def football_pipeline():
         new_alias = []
 
         stat_keys = ("played", "won", "draw", "lost", "goals_for", "goals_against", "points")
+        prefix = {"football-data": "fd", "ballthai": "bt", "siamsport": "ss"}
         merged, dedup_removed = [], 0
 
-        def out_row(r, key, name_en, name_th, sources):
+        def norm(name):
+            return "".join((name or "").lower().split())
+
+        def out_row(r, key, name, name_th, sources):
             return {**{k: r[k] for k in ("league_code", "season", "position", "played", "won", "draw",
                                          "lost", "goals_for", "goals_against", "goal_diff", "points")},
-                    "team_key": key, "team_name": name_en or name_th, "team_name_th": name_th,
+                    "team_key": key, "team_name": name or name_th, "team_name_th": name_th,
                     "sources": ", ".join(sources), "n_sources": len(sources)}
 
-        leagues = sorted({r["league_code"] for r in rows})
-        for lg in leagues:
-            fd = [r for r in rows if r["league_code"] == lg and r["source"] == "football-data"]
+        def unique(cands):
+            return cands[0] if len(cands) == 1 else None
+
+        for lg in sorted({r["league_code"] for r in rows}):
             ss = [r for r in rows if r["league_code"] == lg and r["source"] == "siamsport"]
-            bt = [r for r in rows if r["league_code"] == lg and r["source"] == "ballthai"]
-            fd_by_key = {f"fd{r['source_team_id']}": r for r in fd}
+            prim_src = "football-data" if lg in fs.EURO_LEAGUES else "ballthai"
+            prim = {f"{prefix[prim_src]}{r['source_team_id']}": r
+                    for r in rows if r["league_code"] == lg and r["source"] == prim_src}
+            thai_primary = prim_src == "ballthai"
             used = set()
             for s in ss:
-                match_key = None
+                free = {k: p for k, p in prim.items() if k not in used}
                 a = alias.get((lg, "siamsport", s["source_team_id"]))
-                if a and a[0] in fd_by_key and a[0] not in used:
-                    match_key = a[0]
+                match_key = a[0] if a and a[0] in free else None
+                if match_key is None:  # ชื่อ (ใช้ได้เมื่อทั้งสองแหล่งเป็นภาษาไทย)
+                    n = norm(s["team_name"])
+                    match_key = unique([k for k, p in free.items() if norm(p["team_name"]) == n]) or unique(
+                        [k for k, p in free.items() if n and (n in norm(p["team_name"]) or norm(p["team_name"]) in n)])
                 if match_key is None:
                     sig = tuple(s[k] for k in stat_keys)
-                    cands = [k for k, f in fd_by_key.items()
-                             if k not in used and tuple(f[x] for x in stat_keys) == sig]
-                    if len(cands) == 1:
-                        match_key = cands[0]
+                    match_key = unique([k for k, p in free.items() if tuple(p[x] for x in stat_keys) == sig])
                 if match_key is None:
-                    cands = [k for k, f in fd_by_key.items() if k not in used
-                             and f["position"] == s["position"] and f["points"] == s["points"]]
-                    if len(cands) == 1:
-                        match_key = cands[0]
+                    match_key = unique([k for k, p in free.items()
+                                        if p["position"] == s["position"] and p["points"] == s["points"]])
                 if match_key:
-                    f = fd_by_key[match_key]
+                    p = prim[match_key]
                     used.add(match_key)
                     dedup_removed += 1
-                    new_alias.append((lg, "siamsport", s["source_team_id"], match_key, f["team_name"]))
-                    s["_merged"] = True
-                    merged.append(out_row(f, match_key, f["team_name"], s["team_name"],
-                                          ["football-data", "siamsport"]))
-                elif a:  # football-data ล่มรอบนี้ แต่เคยจับคู่ไว้ -> ใช้ key เดิม ไม่เกิดแถวซ้ำ
+                    new_alias.append((lg, "siamsport", s["source_team_id"], match_key, p["team_name"]))
+                    merged.append(out_row(p, match_key, p["team_name"],
+                                          p["team_name"] if thai_primary else s["team_name"],
+                                          [prim_src, "siamsport"]))
+                elif a:  # แหล่งหลักล่มรอบนี้ แต่เคยจับคู่ไว้ -> ใช้ key เดิม ไม่เกิดแถวซ้ำ
                     merged.append(out_row(s, a[0], a[1], s["team_name"], ["siamsport"]))
                 else:
                     merged.append(out_row(s, f"ss{s['source_team_id']}", None, s["team_name"], ["siamsport"]))
-            for key, f in fd_by_key.items():
+            for key, p in prim.items():
                 if key not in used:
-                    merged.append(out_row(f, key, f["team_name"], None, ["football-data"]))
-            for b in bt:
-                merged.append(out_row(b, f"bt{b['source_team_id']}", None, b["team_name"], ["ballthai"]))
+                    merged.append(out_row(p, key, p["team_name"], p["team_name"] if thai_primary else None,
+                                          [prim_src]))
 
         # ทีมเดียวกันอาจถูกใส่ซ้ำ (เช่น alias ชี้ key เดียวกัน) -> เก็บแถวแรก
         uniq = {}

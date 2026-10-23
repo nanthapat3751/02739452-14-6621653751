@@ -12,7 +12,7 @@
 | # | แหล่ง | วิธีดึง | ข้อมูลที่ได้ |
 |---|------|--------|-------------|
 | 1 | [Football-Data API](https://www.football-data.org/) (v4) | REST API (ต้องใช้ API key ฟรี) | ตารางคะแนน, ดาวซัลโว (Top 20), ผลการแข่งขันที่จบแล้ว ของ Premier League, La Liga, Serie A, Bundesliga, Ligue 1 |
-| 2 | [Siamsport](https://www.siamsport.co.th/standings/football-international/premierleague/) | **Web scraping** HTML `<table>` ด้วย `requests` + `BeautifulSoup` | ตารางคะแนน 5 ลีกใหญ่ยุโรป (ชื่อทีมภาษาไทย) |
+| 2 | [Siamsport](https://www.siamsport.co.th/standings/football-international/premierleague/) | **Web scraping** HTML `<table>` ด้วย `requests` + `BeautifulSoup` | ตารางคะแนน 5 ลีกใหญ่ยุโรป + ไทยลีก 1 (ชื่อทีมภาษาไทย) |
 | 3 | [Ballthai](https://www.ballthai.com/ตารางคะแนนไทยลีก/) | **Web scraping** ข้อมูล JSON ที่หน้าเว็บโหลดผ่าน JavaScript (`svc.ballthai.com`) ด้วย `requests` | ตารางคะแนน + ดาวซัลโว ไทยลีก 1 และไทยลีก 2 |
 
 - ไม่ใช้ Selenium
@@ -32,7 +32,7 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 | **TaskGroup ×3** | 3 แหล่งรันขนานกัน แต่ละแหล่ง extract → transform → load ลงตาราง staging (`stg_standings`, `stg_scorers`, `stg_matches`) ด้วย **UPSERT** (`INSERT ... ON CONFLICT DO UPDATE`) |
 | **Schema เดียวกัน** | ทุกแหล่งถูกแปลงเป็น schema เดียว: `league_code, season, team_name, position, played, won, draw, lost, goals_for, goals_against, goal_diff, points` |
 | **แหล่งล่มแล้วไปต่อได้** | `merge_dedup` ใช้ `trigger_rule=all_done` และอ่านเฉพาะแถวของ `run_id` รอบนี้ → แหล่งที่ล่มไม่มีแถว แต่แหล่งที่เหลือยังถูกรวมและ publish ได้ (ทดสอบได้โดย Trigger DAG w/ config `{"fail_sources": ["siamsport"]}`) |
-| **ตัดรายการซ้ำข้ามแหล่ง** | Football-Data กับ Siamsport มีตารางคะแนนลีกเดียวกัน แต่ชื่อทีมต่างภาษา (`Man City` vs `แมนซิตี้`) → จับคู่ด้วย (1) ตาราง `team_alias` ที่เคยจับคู่ไว้ (2) สถิติตรงกันทุกค่า (3) อันดับ+แต้มตรงกัน แล้วรวมเป็นแถวเดียว (`sources = 'football-data, siamsport'`) เก็บทั้งชื่ออังกฤษและไทย |
+| **ตัดรายการซ้ำข้ามแหล่ง** | ทีมเดียวกันมาจากหลายแหล่ง: ไทยลีก 1 = Ballthai × Siamsport (`พีที ประจวบ เอฟซี` vs `ประจวบ เอฟซี`), ลีกยุโรป = Football-Data × Siamsport (`Man City` vs `แมนซิตี้`) → จับคู่ด้วย (1) ตาราง `team_alias` (2) ชื่อตรงกัน/ชื่อหนึ่งอยู่ในอีกชื่อ (3) สถิติตรงกันทุกค่า (4) อันดับ+แต้มตรงกัน แล้วรวมเป็นแถวเดียว (`sources = 'ballthai, siamsport'`) |
 | **ตรวจคุณภาพ + แตกเส้นทาง** | `quality_check` (BranchPythonOperator) ตรวจ เช่น แข่ง = ชนะ+เสมอ+แพ้, ผลต่างประตู = ได้−เสีย, ค่าไม่ติดลบ, แต้ม ≤ 3×แข่ง, สกอร์ไม่ว่าง/ไม่ผิดปกติ, จำนวนแถวรวม ≥ 100 → ผ่านไป `dq_passed`, ไม่ผ่านไป `quarantine_bad_rows` (ย้ายแถวเสียไป `dq_quarantine`) แล้ว `publish` เฉพาะแถวที่ผ่าน |
 | **UPSERT ปลายทาง** | `publish` UPSERT ลง `standings`, `top_scorers`, `matches` → รันซ้ำกี่ครั้งจำนวนแถวไม่เพิ่ม |
 | **สถานะ pipeline** | `record_run` บันทึกสถานะแต่ละแหล่ง/ทุก task ลง `pipeline_runs` → แสดงที่หน้า "สถานะ Pipeline" บนเว็บ |

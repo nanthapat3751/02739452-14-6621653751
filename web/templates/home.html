@@ -7,7 +7,7 @@
   {{ kpi_card('ประตูรวม (ตารางคะแนน)', '{:,}'.format(kpi.goals)) }}
   {{ kpi_card('ผลบอลที่เก็บ', '{:,}'.format(kpi.matches) ~ ' นัด', ('เฉลี่ย %.2f ประตู/นัด' % kpi.avg_goals) if kpi.avg_goals else 'ต้องใช้ Football-Data API') }}
   {{ kpi_card('ดาวซัลโวที่เก็บ', '{:,}'.format(kpi.scorers) ~ ' คน') }}
-  {{ kpi_card('ทีมยืนยันจาก 2 แหล่ง', kpi.verified, 'Football-Data × Siamsport') }}
+  {{ kpi_card('ทีมยืนยันจาก 2 แหล่ง', kpi.verified, 'จับคู่ตัดซ้ำข้ามแหล่งแล้ว') }}
 </section>
 
 <div class="grid-2-1">
