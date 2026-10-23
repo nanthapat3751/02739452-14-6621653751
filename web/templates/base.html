@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Football Hub{% endblock %} · ศูนย์รวมข้อมูลฟุตบอล</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="/"><span class="brand-ball">⚽</span><span class="brand-text">FOOTBALL<b>HUB</b></span></a>
+    <span class="tagline">ตารางคะแนน · ดาวซัลโว · ผลบอล ลีกยุโรป & ไทยลีก</span>
+    {% if last_run %}
+    <a class="run-chip {{ last_run.status }}" href="/pipeline" title="สถานะ pipeline ล่าสุด">
+      <i></i>อัปเดต {{ fmt_time(last_run.finished_at) }}
+    </a>
+    {% endif %}
+  </div>
+</header>
+<nav class="mainnav">
+  <div class="wrap mainnav-inner">
+    {% set menu = [('home','/','หน้าแรก'),('standings','/standings','ตารางคะแนน'),('scorers','/scorers','ดาวซัลโว'),('matches','/matches','ผลบอล'),('pipeline','/pipeline','สถานะระบบ')] %}
+    {% for ep, href, label in menu %}
+      <a href="{{ href }}" class="{{ 'active' if endpoint == ep }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</nav>
+
+{% block leaguebar %}{% endblock %}
+
+<main class="wrap">
+  {% block filterbar %}
+  {% if endpoint != 'pipeline' %}
+  <form class="filterbar" method="get">
+    {% if f.league %}<input type="hidden" name="league" value="{{ f.league }}">{% endif %}
+    <label>ฤดูกาล
+      <select name="season" onchange="this.form.submit()">
+        {% for s in f.seasons %}<option {{ 'selected' if s == f.season }}>{{ s }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="srcs">แหล่งข้อมูล
+      {% for s in ALL_SOURCES %}
+        <label class="chk"><input type="checkbox" name="source" value="{{ s }}" {{ 'checked' if s in f.sources }} onchange="this.form.submit()"> {{ s }}</label>
+      {% endfor %}
+    </div>
+    {% block extrafilters %}{% endblock %}
+    <label class="grow">ค้นหา
+      <input type="search" name="team" value="{{ f.team }}" placeholder="{% block searchph %}ชื่อทีม (ไทย/อังกฤษ){% endblock %}">
+    </label>
+    <button type="submit">กรอง</button>
+    {% if request.args.keys()|reject('equalto','league')|list %}<a class="reset" href="{{ request.path }}{{ '?league=' ~ f.league if f.league }}">ล้าง</a>{% endif %}
+  </form>
+  {% endif %}
+  {% endblock %}
+
+  {% if not f.season and endpoint != 'pipeline' %}
+    <div class="empty">ยังไม่มีข้อมูลใน PostgreSQL — เปิด Airflow <a href="http://localhost:8080">localhost:8080</a> แล้ว Trigger DAG <code>football_multi_source_pipeline</code></div>
+  {% else %}
+    {% block content %}{% endblock %}
+  {% endif %}
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    ข้อมูลจาก <b>Football-Data API</b> · <b>Siamsport</b> (web scraping) · <b>Ballthai</b> (web scraping)
+    — รวบรวมด้วย Apache Airflow, จัดเก็บใน PostgreSQL · โปรเจกต์รายวิชา 02739452
+  </div>
+</footer>
+<script>
+  Chart.defaults.font.family = "'Sarabun', sans-serif";
+  Chart.defaults.color = '#444';
+  const RED = '#d71920', DARK = '#1b1b1b', GREY = '#9aa0a6';
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import league_tabs, kpi_card with context %}
+{% block title %}ผลบอล{% endblock %}
+{% block leaguebar %}{{ league_tabs(league, '/matches', allow_all=True) }}{% endblock %}
+{% block extrafilters %}
+<label>ผล
+  <select name="result" onchange="this.form.submit()">
+    {% for v, t in [('', 'ทั้งหมด'), ('HOME', 'เจ้าบ้านชนะ'), ('DRAW', 'เสมอ'), ('AWAY', 'ทีมเยือนชนะ')] %}
+      <option value="{{ v }}" {{ 'selected' if v == result }}>{{ t }}</option>{% endfor %}
+  </select>
+</label>
+{% endblock %}
+{% block content %}
+<h1 class="page-title">ผลบอล {{ LEAGUE_TH.get(league, 'ทุกลีก') }} <small>ฤดูกาล {{ f.season }}</small></h1>
+{% if days %}
+<section class="kpis">
+  {{ kpi_card('จำนวนนัด', kpi.matches) }}
+  {{ kpi_card('ประตูรวม', kpi.goals, 'เฉลี่ย %.2f/นัด' % kpi.avg) }}
+  {{ kpi_card('เจ้าบ้านชนะ', '%d%%' % (100 * kpi.home / kpi.matches), kpi.home ~ ' นัด') }}
+  {{ kpi_card('เสมอ', '%d%%' % (100 * kpi.draw / kpi.matches), kpi.draw ~ ' นัด') }}
+  {{ kpi_card('ทีมเยือนชนะ', '%d%%' % (100 * kpi.away / kpi.matches), kpi.away ~ ' นัด') }}
+  {{ kpi_card('นัดประตูมากสุด', kpi.biggest.home_team ~ ' ' ~ kpi.biggest.home_score ~ '-' ~ kpi.biggest.away_score ~ ' ' ~ kpi.biggest.away_team) }}
+</section>
+<div class="grid-2-1">
+  <div>
+  {% for day, ms in days.items() %}
+    <div class="day-head">{{ day }}</div>
+    <div class="card match-card">
+    {% for m in ms %}
+      <div class="match">
+        <span class="lg-tag">{{ LEAGUE_TH.get(m.league_code) }}{% if m.matchday %} · นัดที่ {{ m.matchday }}{% endif %}</span>
+        <span class="t r {{ 'win' if m.result == 'HOME' }}">{{ m.home_team }}</span>
+        <span class="score">{{ m.home_score }} - {{ m.away_score }}</span>
+        <span class="t {{ 'win' if m.result == 'AWAY' }}">{{ m.away_team }}</span>
+      </div>
+    {% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+  <aside>
+    <div class="card"><div class="card-head"><span>ประตูเฉลี่ยต่อนัด ตาม matchday</span></div><canvas id="mdChart" height="240"></canvas></div>
+    <div class="card"><div class="card-head"><span>สัดส่วนผลการแข่งขัน</span></div><canvas id="resChart" height="220"></canvas></div>
+  </aside>
+</div>
+{% else %}
+<div class="empty">ยังไม่มีผลบอลตามตัวกรอง — ผลบอลมาจาก <b>Football-Data API</b> (ต้องใส่ <code>FOOTBALL_DATA_API_KEY</code> ใน .env)</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if days %}
+<script>
+new Chart(document.getElementById('mdChart'), {
+  type: 'line',
+  data: { labels: {{ tojson(chart.md)|safe }}, datasets: [{ label: 'ประตู/นัด', data: {{ tojson(chart.avg)|safe }},
+          borderColor: RED, backgroundColor: 'rgba(215,25,32,.12)', fill: true, tension: .3 }] },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('resChart'), {
+  type: 'doughnut',
+  data: { labels: ['เจ้าบ้านชนะ', 'เสมอ', 'ทีมเยือนชนะ'],
+          datasets: [{ data: [{{ kpi.home }}, {{ kpi.draw }}, {{ kpi.away }}], backgroundColor: [RED, GREY, DARK] }] }
+});
+</script>
+{% endif %}
+{% endblock %}

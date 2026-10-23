@@ -1,0 +1,26 @@
+{% macro league_tabs(current, base, allow_all=False) %}
+<div class="leaguebar">
+  <div class="wrap leaguebar-inner">
+    {% if allow_all %}<a href="{{ base }}?{{ keep_args() }}" class="{{ 'active' if not current }}">ทุกลีก</a>{% endif %}
+    {% for code, th, en in LEAGUES %}
+      <a href="{{ base }}?league={{ code }}&{{ keep_args() }}" class="{{ 'active' if current == code }}">{{ th }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro keep_args() -%}
+{%- for k, vs in request.args.lists() if k != 'league' -%}{%- for v in vs -%}{{ k }}={{ v|urlencode }}&{%- endfor -%}{%- endfor -%}
+{%- endmacro %}
+
+{% macro src_badges(sources) -%}
+{%- for s in (sources or '').split(', ') if s -%}<span class="src src-{{ s }}">{{ {'football-data':'FD','siamsport':'SS','ballthai':'BT'}.get(s, s) }}</span>{%- endfor -%}
+{%- endmacro %}
+
+{% macro kpi_card(label, value, sub=None) %}
+<div class="kpi"><div class="kpi-label">{{ label }}</div><div class="kpi-value">{{ value }}</div>{% if sub %}<div class="kpi-sub">{{ sub }}</div>{% endif %}</div>
+{% endmacro %}
+
+{% macro badge(name) -%}
+<span class="crest">{{ ((name or '?').lstrip('เแโใไ') or '?')[:1] }}</span>
+{%- endmacro %}

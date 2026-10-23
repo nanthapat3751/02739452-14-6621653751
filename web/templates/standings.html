@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import league_tabs, kpi_card, src_badges, badge with context %}
+{% block title %}ตารางคะแนน {{ LEAGUE_TH.get(league) }}{% endblock %}
+{% block leaguebar %}{{ league_tabs(league, '/standings') }}{% endblock %}
+{% block content %}
+<h1 class="page-title">ตารางคะแนน{{ LEAGUE_TH.get(league) }} <small>ฤดูกาล {{ f.season }}</small></h1>
+
+<section class="kpis">
+  {{ kpi_card('จ่าฝูง', (kpi.leader.team_name_th or kpi.leader.team_name) if kpi.leader else '-', (kpi.leader.points ~ ' แต้ม') if kpi.leader else None) }}
+  {{ kpi_card('เกมรุกดีสุด', (kpi.best_attack.team_name_th or kpi.best_attack.team_name) if kpi.best_attack else '-', (kpi.best_attack.goals_for ~ ' ประตู') if kpi.best_attack else None) }}
+  {{ kpi_card('เกมรับดีสุด', (kpi.best_defense.team_name_th or kpi.best_defense.team_name) if kpi.best_defense else '-', ('เสีย ' ~ kpi.best_defense.goals_against) if kpi.best_defense else None) }}
+  {{ kpi_card('ประตูรวม', kpi.goals, kpi.teams ~ ' ทีม') }}
+  {{ kpi_card('ยืนยันจาก 2 แหล่ง', kpi.verified ~ '/' ~ kpi.teams) }}
+</section>
+
+{% if rows %}
+<div class="card">
+  <table class="tbl standings">
+    <thead><tr><th>#</th><th class="l">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th>
+      <th class="hide-sm">ได้</th><th class="hide-sm">เสีย</th><th>+/-</th><th>แต้ม</th><th class="hide-sm">แหล่ง</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr class="{{ r.zone }}">
+        <td class="pos">{{ r.position }}</td>
+        <td class="l team">{{ badge(r.team_name_th or r.team_name) }}
+          <span><b>{{ r.team_name_th or r.team_name }}</b>{% if r.team_name_th and r.team_name and r.team_name != r.team_name_th %}<small>{{ r.team_name }}</small>{% endif %}</span></td>
+        <td>{{ r.played }}</td><td>{{ r.won }}</td><td>{{ r.draw }}</td><td>{{ r.lost }}</td>
+        <td class="hide-sm">{{ r.goals_for }}</td><td class="hide-sm">{{ r.goals_against }}</td>
+        <td class="{{ 'pos-gd' if r.goal_diff > 0 else ('neg-gd' if r.goal_diff < 0) }}">{{ '%+d' % r.goal_diff }}</td>
+        <td class="pts">{{ r.points }}</td>
+        <td class="hide-sm">{{ src_badges(r.sources) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="legend"><span class="lg top"></span>อันดับ 1-4 &nbsp; <span class="lg bottom"></span>โซนตกชั้น &nbsp;
+    <span class="src src-football-data">FD</span> Football-Data <span class="src src-siamsport">SS</span> Siamsport <span class="src src-ballthai">BT</span> Ballthai</div>
+</div>
+
+<div class="cards-2">
+  <div class="card"><div class="card-head"><span>แต้มสะสม</span></div><canvas id="ptsChart" height="{{ 120 + rows|length * 14 }}"></canvas></div>
+  <div class="card"><div class="card-head"><span>ประตูได้ vs เสีย</span></div><canvas id="gfgaChart" height="{{ 120 + rows|length * 14 }}"></canvas></div>
+</div>
+{% else %}
+<div class="empty">ไม่พบข้อมูลตามตัวกรอง</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const teams = {{ tojson(chart.teams)|safe }};
+new Chart(document.getElementById('ptsChart'), {
+  type: 'bar',
+  data: { labels: teams, datasets: [{ label: 'แต้ม', data: {{ tojson(chart.points)|safe }},
+          backgroundColor: teams.map((_, i) => i < 4 ? RED : DARK), borderRadius: 3 }] },
+  options: { indexAxis: 'y', plugins: { legend: { display: false } }, maintainAspectRatio: false }
+});
+new Chart(document.getElementById('gfgaChart'), {
+  type: 'bar',
+  data: { labels: teams, datasets: [
+    { label: 'ได้', data: {{ tojson(chart.gf)|safe }}, backgroundColor: RED, borderRadius: 3 },
+    { label: 'เสีย', data: {{ tojson(chart.ga)|safe }}.map(v => -v), backgroundColor: GREY, borderRadius: 3 }] },
+  options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { stacked: true, ticks: { callback: v => Math.abs(v) } }, y: { stacked: true } },
+             plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ' + Math.abs(c.raw) } } } }
+});
+</script>
+{% endblock %}

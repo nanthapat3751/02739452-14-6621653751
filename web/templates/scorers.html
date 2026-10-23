@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import league_tabs, kpi_card, src_badges with context %}
+{% block title %}ดาวซัลโว{% endblock %}
+{% block leaguebar %}{{ league_tabs(league, '/scorers', allow_all=True) }}{% endblock %}
+{% block searchph %}ชื่อนักเตะ / ทีม{% endblock %}
+{% block extrafilters %}
+<label>แสดง
+  <select name="top" onchange="this.form.submit()">
+    {% for n in [10, 20, 50, 100] %}<option value="{{ n }}" {{ 'selected' if n == top_n }}>Top {{ n }}</option>{% endfor %}
+  </select>
+</label>
+{% endblock %}
+{% block content %}
+<h1 class="page-title">อันดับดาวซัลโว {{ LEAGUE_TH.get(league, 'ทุกลีก') }} <small>ฤดูกาล {{ f.season }}</small></h1>
+<section class="kpis">
+  {{ kpi_card('ดาวซัลโวอันดับ 1', kpi.top.player_name.title() if kpi.top else '-', (kpi.top.goals ~ ' ประตู · ' ~ kpi.top.team_name) if kpi.top else None) }}
+  {{ kpi_card('ราชาแอสซิสต์', kpi.assist_king.player_name.title() if kpi.assist_king else '-', (kpi.assist_king.assists ~ ' แอสซิสต์') if kpi.assist_king else 'มีเฉพาะ Football-Data') }}
+  {{ kpi_card('นักเตะในรายการ', kpi.players) }}
+  {{ kpi_card('ประตูรวม', kpi.goals) }}
+</section>
+{% if rows %}
+<div class="grid-2-1">
+  <div class="card">
+    <table class="tbl">
+      <thead><tr><th>#</th><th class="l">นักเตะ</th><th class="l hide-sm">ทีม</th><th class="hide-sm">ลีก</th><th>ประตู</th><th>แอสซิสต์</th><th class="hide-sm">จุดโทษ</th><th class="hide-sm">แหล่ง</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="{{ 'top' if loop.index <= 3 }}"><td class="pos">{{ loop.index }}</td>
+          <td class="l"><b>{{ r.player_name.title() }}</b>{% if r.nationality %} <small class="muted">{{ r.nationality }}</small>{% endif %}</td>
+          <td class="l hide-sm">{{ r.team_name }}</td><td class="hide-sm">{{ LEAGUE_TH.get(r.league_code) }}</td>
+          <td class="pts">{{ r.goals }}</td><td>{{ r.assists if r.assists is not none else '-' }}</td>
+          <td class="hide-sm">{{ r.penalties if r.penalties is not none else '-' }}</td><td class="hide-sm">{{ src_badges(r.source) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card"><div class="card-head"><span>Top 15 ประตู + แอสซิสต์</span></div><canvas id="scChart" height="520"></canvas></div>
+</div>
+{% else %}<div class="empty">ไม่พบข้อมูลตามตัวกรอง</div>{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('scChart'), {
+  type: 'bar',
+  data: { labels: {{ tojson(chart.names)|safe }}, datasets: [
+    { label: 'ประตู', data: {{ tojson(chart.goals)|safe }}, backgroundColor: RED, borderRadius: 3 },
+    { label: 'แอสซิสต์', data: {{ tojson(chart.assists)|safe }}, backgroundColor: DARK, borderRadius: 3 }] },
+  options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros.html" import kpi_card with context %}
+{% block title %}สถานะระบบ{% endblock %}
+{% block content %}
+<h1 class="page-title">สถานะ Pipeline <small>Airflow DAG: football_multi_source_pipeline</small></h1>
+{% if last %}
+{% set icon = {'success': '🟢', 'partial': '🟡', 'failed': '🔴'} %}
+<section class="kpis">
+  {{ kpi_card('รอบล่าสุด', icon.get(last.status, '⚪') ~ ' ' ~ last.status, fmt_time(last.finished_at)) }}
+  {{ kpi_card('แถวในฐานข้อมูล', '{:,}'.format(total), 'standings + top_scorers + matches') }}
+  {{ kpi_card('ทีมซ้ำข้ามแหล่งที่ตัดออก', last.dedup_removed or 0, 'รอบล่าสุด') }}
+  {{ kpi_card('ตรวจคุณภาพ (DQ)', 'ผ่าน' if last.dq_passed else 'ไม่ผ่าน', (last.dq_issues or 0) ~ ' แถวถูกกักกัน') }}
+</section>
+
+<h2 class="sec">แหล่งข้อมูล (รอบล่าสุด)</h2>
+<div class="cards-3">
+  {% set desc = {'football_data': ('Football-Data API', 'REST API · 5 ลีกยุโรป · ตาราง/ดาวซัลโว/ผลบอล'),
+                 'siamsport': ('Siamsport', 'Web scraping HTML · ตารางคะแนน 5 ลีกยุโรป'),
+                 'ballthai': ('Ballthai', 'Web scraping (JSON ของหน้าเว็บ) · ไทยลีก 1-2')} %}
+  {% for key, st in (last.source_status or {}).items() %}
+  <div class="card source-card {{ st }}">
+    <div class="src-name">{{ desc[key][0] }}</div>
+    <div class="src-state">{{ '● ทำงานปกติ' if st == 'success' else '● ล่ม / ดึงไม่สำเร็จ' }}</div>
+    <small>{{ desc[key][1] }}</small>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid-2-1">
+  <div>
+    <h2 class="sec">ประวัติการรัน</h2>
+    <div class="card scroll-x">
+      <table class="tbl compact">
+        <thead><tr><th class="l">Run</th><th>สถานะ</th><th>เสร็จเมื่อ</th><th>FD</th><th>SS</th><th>BT</th><th>ทีม</th><th>ดาวซัลโว</th><th>ผลบอล</th><th>ตัดซ้ำ</th><th>DQ</th></tr></thead>
+        <tbody>
+        {% for r in runs %}{% set ss = r.source_status or {} %}
+          <tr><td class="l mono">{{ r.run_id[:30] }}</td><td>{{ icon.get(r.status, '') }} {{ r.status }}</td><td>{{ fmt_time(r.finished_at) }}</td>
+            {% for k in ['football_data', 'siamsport', 'ballthai'] %}<td>{{ '✅' if ss.get(k) == 'success' else '❌' }}</td>{% endfor %}
+            <td>{{ r.rows_standings }}</td><td>{{ r.rows_scorers }}</td><td>{{ r.rows_matches }}</td><td>{{ r.dedup_removed }}</td>
+            <td>{{ '✅' if r.dq_passed else '⚠️ ' ~ r.dq_issues }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside>
+    <h2 class="sec">จำนวนแถวตามตาราง</h2>
+    <div class="card"><table class="tbl compact">{% for c in counts %}<tr><td class="l mono">{{ c.t }}</td><td class="pts">{{ '{:,}'.format(c.n) }}</td></tr>{% endfor %}</table></div>
+    <h2 class="sec">แถวตามแหล่งข้อมูล</h2>
+    <div class="card"><canvas id="srcChart" height="200"></canvas></div>
+    <h2 class="sec">Task ทั้งหมด (รอบล่าสุด)</h2>
+    <div class="card task-list">
+      {% for t, s in (last.task_states or {}).items()|sort %}<div><span class="dot {{ s }}"></span><span class="mono">{{ t }}</span><small>{{ s }}</small></div>{% endfor %}
+    </div>
+  </aside>
+</div>
+
+<h2 class="sec">แถวที่ไม่ผ่านการตรวจคุณภาพ (dq_quarantine)</h2>
+<div class="card scroll-x">
+  {% if quarantine %}
+  <table class="tbl compact">
+    <thead><tr><th class="l">Run</th><th>ตาราง</th><th class="l">เหตุผล</th><th class="l">ข้อมูล</th></tr></thead>
+    <tbody>{% for x in quarantine %}<tr><td class="l mono">{{ x.run_id[:30] }}</td><td>{{ x.table_name }}</td><td class="l">{{ x.reason }}</td><td class="l mono small">{{ tojson(x.record, ensure_ascii=False)[:160] }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="muted">ไม่มีแถวที่ถูกกักกัน</p>{% endif %}
+</div>
+{% else %}
+<div class="empty">ยังไม่มีประวัติการรัน — Trigger DAG ใน Airflow (localhost:8080)</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('srcChart'), {
+  type: 'doughnut',
+  data: { labels: {{ tojson(by_source|map(attribute='source')|list)|safe }},
+          datasets: [{ data: {{ tojson(by_source|map(attribute='n')|list)|safe }}, backgroundColor: ['#1f6feb', RED, '#0a8f3c'] }] }
+});
+</script>
+{% endblock %}

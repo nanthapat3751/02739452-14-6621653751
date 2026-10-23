@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import kpi_card, src_badges, badge with context %}
+{% block title %}หน้าแรก{% endblock %}
+{% block content %}
+<section class="kpis">
+  {{ kpi_card('ทีมทั้งหมด', '{:,}'.format(kpi.teams), kpi.leagues ~ ' ลีก') }}
+  {{ kpi_card('ประตูรวม (ตารางคะแนน)', '{:,}'.format(kpi.goals)) }}
+  {{ kpi_card('ผลบอลที่เก็บ', '{:,}'.format(kpi.matches) ~ ' นัด', ('เฉลี่ย %.2f ประตู/นัด' % kpi.avg_goals) if kpi.avg_goals else 'ต้องใช้ Football-Data API') }}
+  {{ kpi_card('ดาวซัลโวที่เก็บ', '{:,}'.format(kpi.scorers) ~ ' คน') }}
+  {{ kpi_card('ทีมยืนยันจาก 2 แหล่ง', kpi.verified, 'Football-Data × Siamsport') }}
+</section>
+
+<div class="grid-2-1">
+  <div>
+    <h2 class="sec">ตารางคะแนนล่าสุด</h2>
+    <div class="cards-2">
+    {% for code, th, en in LEAGUES if code in by_league %}
+      <div class="card">
+        <div class="card-head"><span>{{ th }}</span><a href="/standings?league={{ code }}&season={{ f.season }}">ดูทั้งหมด ›</a></div>
+        <table class="tbl compact">
+          <thead><tr><th>#</th><th class="l">ทีม</th><th>แข่ง</th><th>+/-</th><th>แต้ม</th></tr></thead>
+          <tbody>
+          {% for r in by_league[code][:6] %}
+            <tr class="{{ 'top' if r.position <= 4 }}"><td>{{ r.position }}</td>
+              <td class="l team">{{ badge(r.team_name_th or r.team_name) }}{{ r.team_name_th or r.team_name }}</td>
+              <td>{{ r.played }}</td><td>{{ '%+d' % r.goal_diff }}</td><td class="pts">{{ r.points }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+    </div>
+  </div>
+  <aside>
+    <h2 class="sec">ดาวซัลโว Top 10</h2>
+    <div class="card">
+      <ol class="scorer-list">
+      {% for s in scorers %}
+        <li><span class="rank">{{ loop.index }}</span>
+          <div class="who"><b>{{ s.player_name.title() }}</b><small>{{ s.team_name }} · {{ LEAGUE_TH.get(s.league_code) }}</small></div>
+          <span class="goals">{{ s.goals }}</span></li>
+      {% endfor %}
+      </ol>
+      <a class="more" href="/scorers?season={{ f.season }}">ดูอันดับดาวซัลโวทั้งหมด ›</a>
+    </div>
+
+    <h2 class="sec">ประตูเฉลี่ยต่อนัด แยกลีก</h2>
+    <div class="card"><canvas id="avgChart" height="230"></canvas></div>
+
+    {% if results %}
+    <h2 class="sec">ผลบอลล่าสุด</h2>
+    <div class="card">
+      {% for m in results %}
+      <div class="mini-match"><span class="t r">{{ m.home_team }}</span><span class="score">{{ m.home_score }} - {{ m.away_score }}</span><span class="t">{{ m.away_team }}</span></div>
+      {% endfor %}
+      <a class="more" href="/matches?season={{ f.season }}">ดูผลบอลทั้งหมด ›</a>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('avgChart'), {
+  type: 'bar',
+  data: { labels: {{ tojson(chart.labels)|safe }},
+          datasets: [{ label: 'ประตู/นัด', data: {{ tojson(chart.avg)|safe }}, backgroundColor: RED, borderRadius: 4 }] },
+  options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

@@ -5,7 +5,7 @@ x-airflow-common: &airflow-common
   image: football-airflow:2.10.4
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:?ตั้งค่าใน .env}@airflow-db/airflow
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -13,7 +13,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: Asia/Bangkok
     AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: 30
     # การเชื่อมต่อฐานข้อมูลปลายทาง (Airflow connection id = football_db)
-    AIRFLOW_CONN_FOOTBALL_DB: postgresql://${FOOTBALL_DB_USER:-football}:${FOOTBALL_DB_PASSWORD:-football}@football-db:5432/${FOOTBALL_DB_NAME:-football}
+    AIRFLOW_CONN_FOOTBALL_DB: postgresql://${FOOTBALL_DB_USER:-football}:${FOOTBALL_DB_PASSWORD:?ตั้งค่า FOOTBALL_DB_PASSWORD ใน .env (cp .env.example .env)}@football-db:5432/${FOOTBALL_DB_NAME:-football}
     FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
   volumes:
     - ./dags:/opt/airflow/dags
@@ -33,7 +33,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?ตั้งค่าใน .env}
       POSTGRES_DB: airflow
     volumes:
       - airflow-db-volume:/var/lib/postgresql/data
@@ -48,7 +48,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: ${FOOTBALL_DB_USER:-football}
-      POSTGRES_PASSWORD: ${FOOTBALL_DB_PASSWORD:-football}
+      POSTGRES_PASSWORD: ${FOOTBALL_DB_PASSWORD:?ตั้งค่า FOOTBALL_DB_PASSWORD ใน .env (cp .env.example .env)}
       POSTGRES_DB: ${FOOTBALL_DB_NAME:-football}
       TZ: Asia/Bangkok
     ports:
@@ -75,7 +75,7 @@ services:
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:?ตั้งค่าใน .env}
     user: "0:0"
     volumes:
       - .:/sources
@@ -114,7 +114,7 @@ services:
       DB_PORT: 5432
       DB_NAME: ${FOOTBALL_DB_NAME:-football}
       DB_USER: ${FOOTBALL_DB_USER:-football}
-      DB_PASSWORD: ${FOOTBALL_DB_PASSWORD:-football}
+      DB_PASSWORD: ${FOOTBALL_DB_PASSWORD:?ตั้งค่า FOOTBALL_DB_PASSWORD ใน .env (cp .env.example .env)}
     ports:
       - "8501:8501"
     depends_on:

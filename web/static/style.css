@@ -1,0 +1,134 @@
+:root {
+  --red: #d71920; --red-dark: #a8121a; --ink: #1b1b1b; --ink-2: #2b2b2b;
+  --bg: #f3f4f6; --card: #ffffff; --line: #e6e7ea; --muted: #6b7280;
+  --green: #0a8f3c; --amber: #d98e04; --blue: #1f6feb;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Sarabun', sans-serif; font-size: 15px; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, .brand, .mainnav, .leaguebar, .kpi-value, .card-head, .day-head, th { font-family: 'Kanit', sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+.muted { color: var(--muted); }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.small { font-size: 11.5px; }
+
+/* ---------- header (แถบแดงแบบ Siamsport) ---------- */
+.topbar { background: var(--red); color: #fff; }
+.topbar-inner { display: flex; align-items: center; gap: 18px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 26px; letter-spacing: .5px; }
+.brand-ball { background: #fff; border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; font-size: 22px; }
+.brand-text { font-weight: 500; } .brand-text b { font-weight: 700; color: #ffd400; }
+.tagline { opacity: .9; font-size: 14px; flex: 1; }
+.run-chip { background: rgba(0,0,0,.25); padding: 6px 12px; border-radius: 99px; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.run-chip i { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; display: inline-block; }
+.run-chip.partial i { background: #fbbf24; } .run-chip.failed i { background: #fff; }
+
+.mainnav { background: var(--ink); position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.mainnav-inner { display: flex; gap: 2px; overflow-x: auto; }
+.mainnav a { color: #e5e5e5; padding: 13px 18px; font-size: 16px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.mainnav a:hover { color: #fff; background: var(--ink-2); }
+.mainnav a.active { color: #fff; border-bottom-color: var(--red); background: var(--ink-2); }
+
+.leaguebar { background: #fff; border-bottom: 1px solid var(--line); }
+.leaguebar-inner { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; }
+.leaguebar a { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); font-size: 14px; white-space: nowrap; color: var(--ink-2); }
+.leaguebar a:hover { border-color: var(--red); color: var(--red); }
+.leaguebar a.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+main.wrap { padding-top: 18px; padding-bottom: 32px; }
+.page-title { font-size: 26px; margin: 4px 0 14px; font-weight: 600; border-left: 6px solid var(--red); padding-left: 12px; }
+.page-title small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+h2.sec { font-size: 19px; font-weight: 600; margin: 22px 0 10px; display: flex; align-items: center; gap: 8px; }
+h2.sec::before { content: ''; width: 5px; height: 20px; background: var(--red); border-radius: 2px; }
+
+/* ---------- filter bar ---------- */
+.filterbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+.filterbar label { display: flex; flex-direction: column; gap: 4px; }
+.filterbar .grow { flex: 1; min-width: 180px; }
+.filterbar select, .filterbar input[type=search] { font: inherit; font-size: 14px; color: var(--ink); padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; }
+.filterbar .srcs { display: flex; flex-direction: column; gap: 4px; }
+.filterbar .chk { flex-direction: row; align-items: center; gap: 4px; display: inline-flex; margin-right: 10px; color: var(--ink); font-size: 14px; }
+.filterbar button { background: var(--red); color: #fff; border: 0; padding: 8px 20px; border-radius: 6px; font: 500 14px 'Kanit'; cursor: pointer; }
+.filterbar button:hover { background: var(--red-dark); }
+.filterbar .reset { color: var(--red); padding: 8px 4px; }
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.kpi { background: #fff; border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); border-top: 4px solid var(--red); }
+.kpi-label { font-size: 13px; color: var(--muted); }
+.kpi-value { font-size: 24px; font-weight: 600; margin-top: 2px; line-height: 1.25; word-break: break-word; }
+.kpi-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+/* ---------- cards / layout ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 16px; padding-bottom: 8px; margin-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.card-head a { font-size: 13px; color: var(--red); font-weight: 500; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+.cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.scroll-x { overflow-x: auto; }
+.empty { background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 40px; text-align: center; color: var(--muted); }
+.more { display: block; text-align: right; color: var(--red); font-size: 13px; margin-top: 8px; }
+
+/* ---------- tables ---------- */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { background: var(--ink); color: #fff; font-weight: 500; padding: 8px 6px; text-align: center; font-size: 13px; }
+.tbl th:first-child { border-radius: 6px 0 0 0; } .tbl th:last-child { border-radius: 0 6px 0 0; }
+.tbl td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+.tbl tbody tr:hover { background: #fff5f5; }
+.tbl .l { text-align: left; }
+.tbl.compact td { padding: 6px 5px; }
+.tbl .pts { font-weight: 700; font-family: 'Kanit'; font-size: 15px; }
+.tbl tr.top td.pos, .tbl tr.top td:first-child { box-shadow: inset 4px 0 0 var(--blue); }
+.tbl tr.bottom td.pos, .tbl tr.bottom td:first-child { box-shadow: inset 4px 0 0 var(--red); }
+.team { display: flex; align-items: center; gap: 8px; }
+.team small { display: block; color: var(--muted); font-size: 12px; }
+.crest { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #f1f1f1; border: 1px solid #ddd; display: grid; place-items: center; font: 600 12px 'Kanit'; color: var(--red); }
+.pos-gd { color: var(--green); font-weight: 600; } .neg-gd { color: var(--red); font-weight: 600; }
+.legend { font-size: 12.5px; color: var(--muted); margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.lg { width: 12px; height: 12px; display: inline-block; border-radius: 2px; } .lg.top { background: var(--blue); } .lg.bottom { background: var(--red); }
+.src { display: inline-block; font: 600 10.5px 'Kanit'; padding: 1px 6px; border-radius: 4px; color: #fff; margin-right: 3px; }
+.src-football-data { background: var(--blue); } .src-siamsport { background: var(--red); } .src-ballthai { background: var(--green); }
+
+/* ---------- scorers ---------- */
+.scorer-list { list-style: none; margin: 0; padding: 0; }
+.scorer-list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.scorer-list .rank { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center; font: 600 13px 'Kanit'; }
+.scorer-list li:first-child .rank { background: var(--red); }
+.scorer-list .who { flex: 1; min-width: 0; } .scorer-list .who b { display: block; font-size: 14px; }
+.scorer-list .who small { color: var(--muted); }
+.scorer-list .goals { font: 700 20px 'Kanit'; color: var(--red); }
+
+/* ---------- matches ---------- */
+.day-head { font-weight: 600; margin: 14px 0 6px; color: var(--ink-2); }
+.match-card { padding: 4px 14px; }
+.match { display: grid; grid-template-columns: 150px 1fr 70px 1fr; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.match:last-child { border: 0; }
+.lg-tag { font-size: 12px; color: var(--muted); }
+.match .t.r, .mini-match .t.r { text-align: right; }
+.match .win { font-weight: 700; }
+.score { background: var(--ink); color: #fff; border-radius: 6px; text-align: center; font: 600 15px 'Kanit'; padding: 3px 0; }
+.mini-match { display: grid; grid-template-columns: 1fr 58px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+
+/* ---------- pipeline ---------- */
+.source-card { border-left: 6px solid var(--green); }
+.source-card.failed { border-left-color: var(--red); }
+.src-name { font: 600 18px 'Kanit'; }
+.src-state { font-weight: 600; color: var(--green); margin: 2px 0 4px; }
+.source-card.failed .src-state { color: var(--red); }
+.task-list { max-height: 360px; overflow-y: auto; font-size: 13px; }
+.task-list div { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.task-list small { margin-left: auto; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 3px; background: #ccc; flex: none; }
+.dot.success { background: var(--green); } .dot.failed { background: var(--red); } .dot.skipped { background: #f472b6; } .dot.upstream_failed { background: var(--amber); }
+
+.footer { background: var(--ink); color: #bbb; font-size: 13px; padding: 18px 0; }
+.footer b { color: #fff; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .grid-2-1, .cards-2, .cards-3 { grid-template-columns: 1fr; }
+  .tagline { display: none; }
+  .hide-sm { display: none; }
+  .match { grid-template-columns: 1fr 60px 1fr; }
+  .match .lg-tag { grid-column: 1 / -1; }
+}

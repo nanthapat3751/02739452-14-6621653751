@@ -5,7 +5,7 @@
 **หมวด:** กีฬา
 **ขอบเขต:** ตารางคะแนน สถิติการแข่งขัน ผลประตู และอันดับดาวซัลโวของฟุตบอลลีกยุโรป (5 ลีกใหญ่) และไทยลีก (T1, T2)
 
-ระบบรวบรวมข้อมูลจาก 3 แหล่งด้วย **Apache Airflow DAG** → จัดเก็บใน **PostgreSQL** → แสดงผลบน **เว็บ dashboard (Streamlit)** ที่อ่านจาก PostgreSQL โดยตรง
+ระบบรวบรวมข้อมูลจาก 3 แหล่งด้วย **Apache Airflow DAG** → จัดเก็บใน **PostgreSQL** → แสดงผลบน **เว็บ dashboard (Flask + Chart.js)** ที่อ่านจาก PostgreSQL โดยตรง
 
 ## แหล่งข้อมูล
 
@@ -44,7 +44,9 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 │   ├── football_pipeline.py   # DAG
 │   └── football_sources.py    # ฟังก์ชัน extract/transform ของแต่ละแหล่ง
 ├── web/
-│   ├── app.py                 # Streamlit dashboard (อ่าน PostgreSQL โดยตรง)
+│   ├── app.py                 # Flask dashboard (query PostgreSQL โดยตรงด้วย psycopg2)
+│   ├── templates/             # หน้าเว็บ (Jinja2) : หน้าแรก, ตารางคะแนน, ดาวซัลโว, ผลบอล, สถานะระบบ
+│   ├── static/style.css
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── Dockerfile                 # Airflow image + requirements.txt
@@ -60,7 +62,7 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 ```bash
 git clone https://github.com/nanthapat3751/02739452-14-662165751.git
 cd 02739452-14-662165751
-cp .env.example .env        # แล้วใส่ FOOTBALL_DATA_API_KEY (สมัครฟรีที่ football-data.org) และรหัสผ่าน
+cp .env.example .env        # แล้วใส่ FOOTBALL_DATA_API_KEY (สมัครฟรีที่ football-data.org) และตั้งรหัสผ่าน
 docker compose up -d --build
 ```
 
@@ -80,10 +82,16 @@ DAG `football_multi_source_pipeline` ถูก unpause อัตโนมัต�
 docker compose exec football-db psql -U football -d football -c "select (select count(*) from standings) s, (select count(*) from top_scorers) t, (select count(*) from matches) m"
 ```
 
-## Dashboard
+## Dashboard (http://localhost:8501)
 
-- **ตารางคะแนน**: KPI (จำนวนทีม, ลีก, ประตูรวม, ประตูเฉลี่ย/นัด, ทีมที่ยืนยันจาก 2 แหล่ง), ตารางคะแนนแยกลีก + กราฟแต้ม, กราฟ scatter ประตูได้-เสีย
-- **ดาวซัลโว**: กราฟอันดับดาวซัลโว + ตาราง
-- **ผลการแข่งขัน**: ผลประตู, ประตูเฉลี่ยต่อ matchday, สัดส่วนเจ้าบ้านชนะ/เสมอ/ทีมเยือนชนะ
-- **สถานะ Pipeline**: สถานะแต่ละแหล่ง, ประวัติการรัน, จำนวนแถว, แถวที่ไม่ผ่าน DQ
-- **ตัวกรอง**: ลีก, ฤดูกาล, แหล่งข้อมูล, ค้นหาชื่อทีม
+ออกแบบโทนแดง-ดำ แบบเว็บข่าวกีฬา มีเมนูด้านบนแบ่งหน้า + แท็บเลือกลีก
+
+| หน้า | เนื้อหา |
+|-----|--------|
+| **หน้าแรก** `/` | KPI (ทีม, ประตูรวม, ผลบอล, ดาวซัลโว, ทีมที่ยืนยันจาก 2 แหล่ง), ตารางคะแนนย่อทุกลีก, ดาวซัลโว Top 10, กราฟประตูเฉลี่ยต่อนัดแยกลีก, ผลบอลล่าสุด |
+| **ตารางคะแนน** `/standings` | แท็บ 7 ลีก, ตารางคะแนนเต็ม (โซนอันดับ, แหล่งข้อมูลของแต่ละแถว), KPI จ่าฝูง/เกมรุก/เกมรับ, กราฟแต้ม, กราฟประตูได้-เสีย |
+| **ดาวซัลโว** `/scorers` | ทุกลีก/แยกลีก, Top N, กราฟประตู+แอสซิสต์, ตาราง |
+| **ผลบอล** `/matches` | ผลการแข่งขันแยกตามวัน, กรองผล (เจ้าบ้านชนะ/เสมอ/ทีมเยือนชนะ), กราฟประตูเฉลี่ยต่อ matchday, สัดส่วนผล |
+| **สถานะระบบ** `/pipeline` | สถานะแต่ละแหล่งในรอบล่าสุด, ประวัติการรัน, จำนวนแถว, สถานะทุก task, แถวที่ไม่ผ่าน DQ (โบนัส) |
+
+**ตัวกรอง** (ทุกหน้า): ฤดูกาล, แหล่งข้อมูล (football-data / siamsport / ballthai), ค้นหาชื่อทีม/นักเตะ
