@@ -43,10 +43,12 @@
         {% for s in f.seasons %}<option {{ 'selected' if s == f.season }}>{{ s }}</option>{% endfor %}
       </select>
     </label>
-    <div class="srcs">แหล่งข้อมูล
+    <div class="srcs"><span>แหล่งข้อมูล</span>
+      <div class="chips">
       {% for s in ALL_SOURCES %}
-        <label class="chk"><input type="checkbox" name="source" value="{{ s }}" {{ 'checked' if s in f.sources }} onchange="this.form.submit()"> {{ s }}</label>
+        <label class="chip"><input type="checkbox" name="source" value="{{ s }}" {{ 'checked' if s in f.sources }} onchange="this.form.submit()"><span>{{ s }}</span></label>
       {% endfor %}
+      </div>
     </div>
     {% block extrafilters %}{% endblock %}
     <label class="grow">ค้นหา

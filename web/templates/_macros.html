@@ -10,7 +10,7 @@
 {% endmacro %}
 
 {% macro keep_args() -%}
-{%- for k, vs in request.args.lists() if k != 'league' -%}{%- for v in vs -%}{{ k }}={{ v|urlencode }}&{%- endfor -%}{%- endfor -%}
+{%- for k, vs in request.args.lists() if k not in ('league', 'page') -%}{%- for v in vs -%}{{ k }}={{ v|urlencode }}&{%- endfor -%}{%- endfor -%}
 {%- endmacro %}
 
 {% macro src_badges(sources) -%}
@@ -24,3 +24,20 @@
 {% macro badge(name) -%}
 <span class="crest">{{ ((name or '?').lstrip('เแโใไ') or '?')[:1] }}</span>
 {%- endmacro %}
+
+{% macro pager(pg) %}
+<div class="pager">
+  <span class="pager-info">{{ pg.start + 1 if pg.total else 0 }}–{{ pg.end }} จาก {{ pg.total }}</span>
+  {% if pg.pages > 1 %}
+  <span class="pager-links">
+    <a class="{{ 'off' if pg.page == 1 }}" href="{{ page_url(pg.arg, pg.page - 1) }}">‹</a>
+    {% for n in range(1, pg.pages + 1) %}
+      {% if n == 1 or n == pg.pages or (n - pg.page)|abs <= 1 %}
+        <a class="{{ 'on' if n == pg.page }}" href="{{ page_url(pg.arg, n) }}">{{ n }}</a>
+      {% elif (n - pg.page)|abs == 2 %}<span class="gap">…</span>{% endif %}
+    {% endfor %}
+    <a class="{{ 'off' if pg.page == pg.pages }}" href="{{ page_url(pg.arg, pg.page + 1) }}">›</a>
+  </span>
+  {% endif %}
+</div>
+{% endmacro %}

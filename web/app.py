@@ -3,12 +3,13 @@ Football Hub — เว็บ dashboard (Flask) อ่านข้อมูล�
 หน้า: หน้าแรก / ตารางคะแนน / ดาวซัลโว / ผลบอล / สถานะระบบ (pipeline)
 """
 import json
+import math
 import os
 from datetime import timezone, timedelta
 
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 
 app = Flask(__name__)
 
@@ -63,7 +64,28 @@ def inject_globals():
         "LEAGUES": LEAGUES, "LEAGUE_TH": LEAGUE_TH, "ALL_SOURCES": SOURCES,
         "last_run": last[0] if last else None, "endpoint": request.endpoint, "tojson": json.dumps,
         "fmt_time": lambda d: d.astimezone(BKK).strftime("%d/%m/%Y %H:%M") if d else "-",
+        "page_url": page_url,
     }
+
+
+def page_url(arg, n):
+    """ลิงก์ไปหน้า n โดยคงตัวกรองเดิมไว้"""
+    args = request.args.to_dict(flat=False)
+    args[arg] = [n]
+    return url_for(request.endpoint, **args)
+
+
+def paginate(rows, per, arg="page"):
+    """แบ่งหน้าฝั่ง server: ?page=N  คืน (แถวของหน้านี้, ข้อมูลหน้า)"""
+    try:
+        page = int(request.args.get(arg, 1))
+    except ValueError:
+        page = 1
+    pages = max(1, math.ceil(len(rows) / per))
+    page = min(max(page, 1), pages)
+    start = (page - 1) * per
+    return rows[start:start + per], {"page": page, "pages": pages, "total": len(rows), "arg": arg,
+                                      "start": start, "end": min(start + per, len(rows))}
 
 
 def source_clause(col, srcs, multi=False):
@@ -83,9 +105,9 @@ def home():
     by_league = {}
     for r in standings:
         by_league.setdefault(r["league_code"], []).append(r)
-    scorers = q("SELECT * FROM top_scorers WHERE season = %s ORDER BY goals DESC, player_name LIMIT 10",
+    scorers = q("SELECT * FROM top_scorers WHERE season = %s ORDER BY goals DESC, player_name LIMIT 7",
                 [f["season"]])
-    results = q("SELECT * FROM matches WHERE season = %s ORDER BY utc_date DESC LIMIT 8", [f["season"]])
+    results = q("SELECT * FROM matches WHERE season = %s ORDER BY utc_date DESC LIMIT 5", [f["season"]])
     goals = q("""SELECT league_code, sum(goals_for) goals, sum(played) played, count(*) teams
                  FROM standings WHERE season = %s GROUP BY league_code""", [f["season"]])
     m = q("SELECT count(*) n, coalesce(sum(total_goals),0) g FROM matches WHERE season = %s", [f["season"]])
@@ -105,8 +127,9 @@ def home():
         "labels": [LEAGUE_TH.get(g["league_code"], g["league_code"]) for g in goals],
         "avg": [round(2 * int(g["goals"] or 0) / max(int(g["played"] or 0), 1), 2) for g in goals],
     }
+    hl = request.args.get("hl") or next((c for c, _, _ in LEAGUES if c in by_league), None)
     return render_template("home.html", f=f, by_league=by_league, scorers=scorers, results=results,
-                           kpi=kpi, chart=chart)
+                           kpi=kpi, chart=chart, hl=hl, hl_rows=by_league.get(hl, [])[:10])
 
 
 # ------------------------------------------------------------------ ตารางคะแนน
@@ -138,7 +161,9 @@ def standings():
         "gf": [r["goals_for"] for r in rows],
         "ga": [r["goals_against"] for r in rows],
     }
-    return render_template("standings.html", f=f, league=league, rows=rows, kpi=kpi, chart=chart)
+    page_rows, pg = paginate(rows, 10)
+    return render_template("standings.html", f=f, league=league, rows=page_rows, n_rows=n, pg=pg,
+                           kpi=kpi, chart=chart)
 
 
 # ------------------------------------------------------------------ ดาวซัลโว
@@ -155,21 +180,18 @@ def scorers():
     if f["team"]:
         sql += " AND (team_name ILIKE %s OR player_name ILIKE %s)"
         params += [f"%{f['team']}%"] * 2
-    try:
-        top_n = max(5, min(int(request.args.get("top", 20)), 100))
-    except ValueError:
-        top_n = 20
-    rows = q(sql + " ORDER BY goals DESC, assists DESC NULLS LAST, player_name LIMIT %s", params + [top_n])
+    rows = q(sql + " ORDER BY goals DESC, assists DESC NULLS LAST, player_name", params)
     kpi = {
         "players": len(rows),
         "goals": sum(r["goals"] for r in rows),
         "top": rows[0] if rows else None,
         "assist_king": max((r for r in rows if r["assists"] is not None), key=lambda r: r["assists"], default=None),
     }
-    chart_rows = rows[:15]
+    chart_rows = rows[:10]
     chart = {"names": [r["player_name"].title() for r in chart_rows], "goals": [r["goals"] for r in chart_rows],
              "assists": [r["assists"] or 0 for r in chart_rows]}
-    return render_template("scorers.html", f=f, league=league, rows=rows, kpi=kpi, chart=chart, top_n=top_n)
+    page_rows, pg = paginate(rows, 10)
+    return render_template("scorers.html", f=f, league=league, rows=page_rows, pg=pg, kpi=kpi, chart=chart)
 
 
 # ------------------------------------------------------------------ ผลบอล
@@ -191,8 +213,9 @@ def matches():
         sql += " AND result = %s"
         params.append(result)
     rows = q(sql + " ORDER BY utc_date DESC", params)
+    page_rows, pg = paginate(rows, 10)
     days = {}
-    for r in rows:
+    for r in page_rows:
         days.setdefault(r["utc_date"].astimezone(BKK).strftime("%d/%m/%Y"), []).append(r)
     n = len(rows)
     kpi = {
@@ -208,13 +231,14 @@ def matches():
         md.setdefault(r["matchday"], []).append(r["total_goals"])
     mds = sorted(k for k in md if k is not None)
     chart = {"md": mds, "avg": [round(sum(md[k]) / len(md[k]), 2) for k in mds]}
-    return render_template("matches.html", f=f, league=league, days=days, kpi=kpi, chart=chart, result=result)
+    return render_template("matches.html", f=f, league=league, days=days, kpi=kpi, chart=chart, result=result,
+                           pg=pg)
 
 
 # ------------------------------------------------------------------ สถานะระบบ
 @app.route("/pipeline")
 def pipeline():
-    runs = q("SELECT * FROM pipeline_runs ORDER BY finished_at DESC NULLS LAST LIMIT 20")
+    runs = q("SELECT * FROM pipeline_runs ORDER BY finished_at DESC NULLS LAST LIMIT 100")
     counts = q("""SELECT 'standings' AS t, count(*) n FROM standings UNION ALL
                   SELECT 'top_scorers', count(*) FROM top_scorers UNION ALL
                   SELECT 'matches', count(*) FROM matches""")
@@ -222,10 +246,12 @@ def pipeline():
                        SELECT unnest(string_to_array(sources, ', ')) s FROM standings
                        UNION ALL SELECT source FROM top_scorers UNION ALL SELECT source FROM matches) x
                      GROUP BY s ORDER BY s""")
-    quarantine = q("SELECT * FROM dq_quarantine ORDER BY id DESC LIMIT 30")
+    quarantine = q("SELECT * FROM dq_quarantine ORDER BY id DESC LIMIT 500")
     total = sum(c["n"] for c in counts)
-    return render_template("pipeline.html", f=filters(), runs=runs, last=runs[0] if runs else None,
-                           counts=counts, total=total, by_source=by_source, quarantine=quarantine)
+    run_rows, pg = paginate(runs, 6)
+    q_rows, qpg = paginate(quarantine, 5, "qpage")
+    return render_template("pipeline.html", f=filters(), runs=run_rows, pg=pg, last=runs[0] if runs else None,
+                           counts=counts, total=total, by_source=by_source, quarantine=q_rows, qpg=qpg)
 
 
 if __name__ == "__main__":

@@ -54,7 +54,7 @@
   • <b>ตรวจคุณภาพแล้วแตกเส้นทาง:</b> <code>quality_check</code> (BranchPythonOperator) ตรวจว่าแข่ง = ชนะ+เสมอ+แพ้, ผลต่างประตูถูกต้อง, ไม่มีค่าติดลบ, แต้ม ≤ 3×แข่ง, สกอร์ไม่ว่าง และรวม ≥ 100 แถว ถ้าผ่านไป <code>dq_passed</code> ถ้าไม่ผ่านไป <code>quarantine_bad_rows</code> ซึ่งย้ายแถวเสียไปตาราง <code>dq_quarantine</code> แล้ว publish เฉพาะแถวที่ผ่าน</td><td class="ok">ผ่าน</td></tr>
   <tr><td>โบนัส</td><td>ทำทั้งสองอย่าง: <b>Dynamic Task Mapping</b> (<code>extract.expand(league_code=[5 ลีก])</code>) และ<b>หน้าสถานะ pipeline</b> บนเว็บ (/pipeline)</td><td class="ok">ผ่าน</td></tr>
 </table>
-<p><b>Stack:</b> Docker Compose · Airflow 2.10.4 (LocalExecutor) · PostgreSQL 16 แยกฐาน metadata กับฐานข้อมูลฟุตบอล · เว็บ Flask + Chart.js ที่ query PostgreSQL โดยตรง (5 หน้า: หน้าแรก/ตารางคะแนน/ดาวซัลโว/ผลบอล/สถานะระบบ) · ข้อมูลรวม <b>__ROWS__</b> รายการ</p>
+<p><b>Stack:</b> Docker Compose · Airflow 2.10.4 (LocalExecutor) · PostgreSQL 16 แยกฐาน metadata กับฐานข้อมูลฟุตบอล · เว็บ Flask + Chart.js ที่ query PostgreSQL โดยตรง เลย์เอาต์แบบ Bento หน้าเดียวจบ มี pagination (5 หน้า: หน้าแรก/ตารางคะแนน/ดาวซัลโว/ผลบอล/สถานะระบบ) · ข้อมูลรวม <b>__ROWS__</b> รายการ</p>
 
 <figure><img src="img/airflow_graph.png"><figcaption>ภาพที่ 1 Graph view: 3 TaskGroup ขนานกัน → merge_dedup → quality_check (branch) → publish → record_run</figcaption></figure>
 <div class="two">

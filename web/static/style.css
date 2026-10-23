@@ -132,3 +132,66 @@ h2.sec::before { content: ''; width: 5px; height: 20px; background: var(--red); 
   .match { grid-template-columns: 1fr 60px 1fr; }
   .match .lg-tag { grid-column: 1 / -1; }
 }
+
+/* ================= Bento layout (หน้าเดียวจบ ไม่ต้องเลื่อนยาว) ================= */
+main.wrap { padding-top: 12px; padding-bottom: 18px; }
+.filterbar { padding: 8px 12px; margin-bottom: 10px; gap: 12px; align-items: center; }
+.filterbar label { flex-direction: row; align-items: center; gap: 6px; }
+.filterbar .srcs { flex-direction: row; align-items: center; gap: 6px; }
+.filterbar select, .filterbar input[type=search] { padding: 5px 9px; }
+.filterbar button { padding: 6px 16px; }
+.chips { display: flex; gap: 4px; }
+.chip input { display: none; }
+.chip span { display: inline-block; padding: 4px 10px; border-radius: 99px; border: 1px solid #d1d5db; color: var(--muted); cursor: pointer; font-size: 13px; }
+.chip input:checked + span { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.kpi { padding: 9px 13px; border-top-width: 3px; }
+.kpi-value { font-size: 19px; }
+.kpi-label, .kpi-sub { font-size: 12px; }
+.kpi-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; align-items: start; }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; }
+.span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.bento .card, .stack .card { margin-bottom: 0; }
+.card { padding: 10px 12px; }
+.card-head { font-size: 15px; padding-bottom: 6px; margin-bottom: 6px; }
+.card-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.card-foot .legend { margin: 0; }
+
+/* กราฟอยู่ในกล่องสูงคงที่ -> ไม่ยืดตามข้อมูล */
+.chart-box { position: relative; width: 100%; }
+.h-180 { height: 180px; } .h-200 { height: 200px; } .h-220 { height: 220px; } .h-230 { height: 230px; } .h-420 { height: 420px; }
+
+.tbl.compact td { padding: 5px 5px; }
+.tbl.compact .team { gap: 6px; }
+.crest { width: 22px; height: 22px; font-size: 11px; }
+.mini-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.mini-tabs a { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: #f1f1f1; color: var(--ink-2); }
+.mini-tabs a.on { background: var(--red); color: #fff; }
+.scorer-list li { padding: 6px 0; }
+.small-note { font-size: 13px; margin: 6px 0; }
+.match { grid-template-columns: 130px 1fr 62px 1fr; padding: 6px 0; font-size: 14px; }
+.day-head { margin: 8px 0 2px; font-size: 13px; color: var(--red); }
+.task-list { max-height: 210px; }
+.source-kpi { border-top-color: var(--green); } .source-kpi .kpi-value { color: var(--green); }
+.source-kpi.failed { border-top-color: var(--red); } .source-kpi.failed .kpi-value { color: var(--red); }
+
+/* pagination */
+.pager { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 13px; }
+.pager-info { color: var(--muted); }
+.pager-links { display: flex; gap: 3px; }
+.pager-links a, .pager-links .gap { min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: #fff; font-family: 'Kanit'; }
+.pager-links a:hover { border-color: var(--red); color: var(--red); }
+.pager-links a.on { background: var(--red); border-color: var(--red); color: #fff; }
+.pager-links a.off { pointer-events: none; opacity: .35; }
+.pager-links .gap { border: 0; background: none; }
+
+@media (max-width: 1000px) {
+  .bento { grid-template-columns: 1fr; }
+  .span-3, .span-4, .span-5, .span-7, .span-8 { grid-column: auto; }
+  .match { grid-template-columns: 1fr 56px 1fr; }
+  .filterbar .srcs { flex-wrap: wrap; }
+}
