@@ -4,3 +4,4 @@ logs/*
 __pycache__/
 *.pyc
 .venv/
+docs/_summary_render.html
