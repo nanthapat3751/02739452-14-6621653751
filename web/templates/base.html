@@ -16,6 +16,7 @@
   <div class="wrap topbar-inner">
     <a class="brand" href="/"><img class="brand-mark" src="{{ url_for('static', filename='logo.svg') }}" alt=""><span class="brand-text">football<b>hub</b><small>data platform</small></span></a>
     <span class="tagline">ตารางคะแนน · ดาวซัลโว · ผลบอล ลีกยุโรป & ไทยลีก</span>
+    <button type="button" class="top-search" data-cmdk-open aria-label="ค้นหา">⌕ ค้นหา <span class="kbd">Ctrl K</span></button>
     {% if last_run %}
     <a class="run-chip {{ last_run.status }}" href="/pipeline" title="สถานะ pipeline ล่าสุด">
       <i></i>อัปเดต {{ fmt_time(last_run.finished_at) }}
@@ -52,9 +53,12 @@
       </div>
     </div>
     {% block extrafilters %}{% endblock %}
-    <label class="grow">ค้นหา
-      <input type="search" name="team" value="{{ f.team }}" placeholder="{% block searchph %}ชื่อทีม (ไทย/อังกฤษ){% endblock %}">
-    </label>
+    <input type="hidden" name="team" value="{{ f.team }}">
+    <button type="button" class="cmdk-trigger grow" data-cmdk-open>
+      <span class="cmdk-ico">⌕</span>
+      {% if f.team %}<span class="cur">กรอง: <b>{{ f.team }}</b></span>{% else %}<span class="ph">{% block searchph %}ค้นหาทีม นักเตะ ลีก…{% endblock %}</span>{% endif %}
+      <span class="kbd">Ctrl K</span>
+    </button>
     <button type="submit">กรอง</button>
     {% if request.args.keys()|reject('equalto','league')|list %}<a class="reset" href="{{ request.path }}{{ '?league=' ~ f.league if f.league }}">ล้าง</a>{% endif %}
   </form>
@@ -79,6 +83,17 @@
   Chart.defaults.color = '#444';
   const RED = '#e90052', DARK = '#37003c', GREY = '#b9a9bd';
 </script>
+<div id="cmdk" class="cmdk" hidden>
+  <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="ค้นหา">
+    <div class="cmdk-input"><span class="cmdk-ico">⌕</span>
+      <input id="cmdk-q" placeholder="ค้นหาทีม นักเตะ ลีก หรือไปหน้า…" autocomplete="off" spellcheck="false">
+      <span class="kbd">Esc</span></div>
+    <div id="cmdk-list" class="cmdk-list" role="listbox"></div>
+    <div class="cmdk-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> เลือก</span><span><span class="kbd">Enter</span> ไป</span><span><span class="kbd">Esc</span> ปิด</span></div>
+  </div>
+</div>
+<script>window.CMDK_SEASON = {{ tojson(f.season if f else None)|safe }};</script>
+<script src="{{ url_for('static', filename='cmdk.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

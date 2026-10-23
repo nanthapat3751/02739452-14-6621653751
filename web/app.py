@@ -9,7 +9,7 @@ from datetime import timezone, timedelta
 
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request, url_for
+from flask import Flask, jsonify, render_template, request, url_for
 
 app = Flask(__name__)
 
@@ -252,6 +252,26 @@ def pipeline():
     q_rows, qpg = paginate(quarantine, 5, "qpage")
     return render_template("pipeline.html", f=filters(), runs=run_rows, pg=pg, last=runs[0] if runs else None,
                            counts=counts, total=total, by_source=by_source, quarantine=q_rows, qpg=qpg)
+
+
+# ------------------------------------------------------------------ Command palette (Ctrl+K)
+@app.route("/api/search-index")
+def search_index():
+    """ดัชนีสำหรับค้นหา (ทีม/นักเตะ/ลีก) จาก PostgreSQL — จับคู่แบบใกล้เคียงทำฝั่งเบราว์เซอร์"""
+    season = request.args.get("season") or None
+    teams = q("""SELECT DISTINCT ON (league_code, team_key) league_code, team_name, team_name_th, position, points
+                 FROM standings WHERE (%s::text IS NULL OR season = %s)
+                 ORDER BY league_code, team_key, season DESC""", [season, season])
+    players = q("""SELECT league_code, player_name, team_name, goals FROM top_scorers
+                   WHERE (%s::text IS NULL OR season = %s) ORDER BY goals DESC""", [season, season])
+    return jsonify({
+        "teams": [{"th": t["team_name_th"] or t["team_name"], "en": t["team_name"], "lg": t["league_code"],
+                   "lgName": LEAGUE_TH.get(t["league_code"]), "pos": t["position"], "pts": t["points"]}
+                  for t in teams],
+        "players": [{"name": p["player_name"].title(), "team": p["team_name"], "lg": p["league_code"],
+                     "lgName": LEAGUE_TH.get(p["league_code"]), "goals": p["goals"]} for p in players],
+        "leagues": [{"code": c, "th": th, "en": en} for c, th, en in LEAGUES],
+    })
 
 
 if __name__ == "__main__":
