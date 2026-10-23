@@ -60,8 +60,8 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 ต้องมี Docker Desktop
 
 ```bash
-git clone https://github.com/nanthapat3751/02739452-14-662165751.git
-cd 02739452-14-662165751
+git clone https://github.com/nanthapat3751/02739452-14-6621653751.git
+cd 02739452-14-6621653751
 cp .env.example .env        # แล้วใส่ FOOTBALL_DATA_API_KEY (สมัครฟรีที่ football-data.org) และตั้งรหัสผ่าน
 docker compose up -d --build
 ```
