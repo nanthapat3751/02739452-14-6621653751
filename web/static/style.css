@@ -6,9 +6,9 @@
   --green: #0a8f3c; --amber: #d98e04; --blue: #1f6feb;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Sarabun', sans-serif; font-size: 15px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans Thai', sans-serif; font-size: 15px; }
 a { color: inherit; text-decoration: none; }
-h1, h2, h3, .brand, .mainnav, .leaguebar, .kpi-value, .card-head, .day-head, th { font-family: 'Kanit', sans-serif; }
+h1, h2, h3, .brand, .mainnav, .leaguebar, .kpi-value, .card-head, .day-head, th { font-family: 'Chakra Petch', sans-serif; }
 .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 .muted { color: var(--muted); }
 .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
@@ -20,7 +20,7 @@ h1, h2, h3, .brand, .mainnav, .leaguebar, .kpi-value, .card-head, .day-head, th 
 .brand { display: flex; align-items: center; gap: 8px; font-size: 26px; letter-spacing: .5px; }
 .brand-mark { width: 40px; height: 40px; display: block; }
 .brand-text { font-weight: 400; letter-spacing: -.5px; line-height: 1; } .brand-text b { font-weight: 600; color: var(--neon); }
-.brand-text small { display: block; font: 400 10.5px 'Sarabun'; letter-spacing: 2.5px; text-transform: uppercase; opacity: .75; margin-top: 3px; }
+.brand-text small { display: block; font: 400 10.5px 'IBM Plex Sans Thai'; letter-spacing: 2.5px; text-transform: uppercase; opacity: .75; margin-top: 3px; }
 .tagline { opacity: .9; font-size: 14px; flex: 1; }
 .run-chip { background: rgba(0,0,0,.25); padding: 6px 12px; border-radius: 99px; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .run-chip i { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; display: inline-block; }
@@ -51,7 +51,7 @@ h2.sec::before { content: ''; width: 5px; height: 20px; background: var(--red); 
 .filterbar select, .filterbar input[type=search] { font: inherit; font-size: 14px; color: var(--ink); padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; }
 .filterbar .srcs { display: flex; flex-direction: column; gap: 4px; }
 .filterbar .chk { flex-direction: row; align-items: center; gap: 4px; display: inline-flex; margin-right: 10px; color: var(--ink); font-size: 14px; }
-.filterbar button { background: var(--red); color: #fff; border: 0; padding: 8px 20px; border-radius: 6px; font: 500 14px 'Kanit'; cursor: pointer; }
+.filterbar button { background: var(--red); color: #fff; border: 0; padding: 8px 20px; border-radius: 6px; font: 500 14px 'Chakra Petch'; cursor: pointer; }
 .filterbar button:hover { background: var(--red-dark); }
 .filterbar .reset { color: var(--red); padding: 8px 4px; }
 
@@ -81,26 +81,26 @@ h2.sec::before { content: ''; width: 5px; height: 20px; background: var(--red); 
 .tbl tbody tr:hover { background: #fff5f5; }
 .tbl .l { text-align: left; }
 .tbl.compact td { padding: 6px 5px; }
-.tbl .pts { font-weight: 700; font-family: 'Kanit'; font-size: 15px; }
+.tbl .pts { font-weight: 700; font-family: 'Chakra Petch'; font-size: 15px; }
 .tbl tr.top td.pos, .tbl tr.top td:first-child { box-shadow: inset 4px 0 0 var(--blue); }
 .tbl tr.bottom td.pos, .tbl tr.bottom td:first-child { box-shadow: inset 4px 0 0 var(--red); }
 .team { display: flex; align-items: center; gap: 8px; }
 .team small { display: block; color: var(--muted); font-size: 12px; }
-.crest { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #f1f1f1; border: 1px solid #ddd; display: grid; place-items: center; font: 600 12px 'Kanit'; color: var(--red); }
+.crest { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #f1f1f1; border: 1px solid #ddd; display: grid; place-items: center; font: 600 12px 'Chakra Petch'; color: var(--red); }
 .pos-gd { color: var(--green); font-weight: 600; } .neg-gd { color: var(--red); font-weight: 600; }
 .legend { font-size: 12.5px; color: var(--muted); margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .lg { width: 12px; height: 12px; display: inline-block; border-radius: 2px; } .lg.top { background: var(--blue); } .lg.bottom { background: var(--red); }
-.src { display: inline-block; font: 600 10.5px 'Kanit'; padding: 1px 6px; border-radius: 4px; color: #fff; margin-right: 3px; }
+.src { display: inline-block; font: 600 10.5px 'Chakra Petch'; padding: 1px 6px; border-radius: 4px; color: #fff; margin-right: 3px; }
 .src-football-data { background: var(--blue); } .src-siamsport { background: var(--red); } .src-ballthai { background: var(--green); }
 
 /* ---------- scorers ---------- */
 .scorer-list { list-style: none; margin: 0; padding: 0; }
 .scorer-list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.scorer-list .rank { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center; font: 600 13px 'Kanit'; }
+.scorer-list .rank { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center; font: 600 13px 'Chakra Petch'; }
 .scorer-list li:first-child .rank { background: var(--red); }
 .scorer-list .who { flex: 1; min-width: 0; } .scorer-list .who b { display: block; font-size: 14px; }
 .scorer-list .who small { color: var(--muted); }
-.scorer-list .goals { font: 700 20px 'Kanit'; color: var(--red); }
+.scorer-list .goals { font: 700 20px 'Chakra Petch'; color: var(--red); }
 
 /* ---------- matches ---------- */
 .day-head { font-weight: 600; margin: 14px 0 6px; color: var(--ink-2); }
@@ -110,13 +110,13 @@ h2.sec::before { content: ''; width: 5px; height: 20px; background: var(--red); 
 .lg-tag { font-size: 12px; color: var(--muted); }
 .match .t.r, .mini-match .t.r { text-align: right; }
 .match .win { font-weight: 700; }
-.score { background: var(--ink); color: #fff; border-radius: 6px; text-align: center; font: 600 15px 'Kanit'; padding: 3px 0; }
+.score { background: var(--ink); color: #fff; border-radius: 6px; text-align: center; font: 600 15px 'Chakra Petch'; padding: 3px 0; }
 .mini-match { display: grid; grid-template-columns: 1fr 58px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 
 /* ---------- pipeline ---------- */
 .source-card { border-left: 6px solid var(--green); }
 .source-card.failed { border-left-color: var(--red); }
-.src-name { font: 600 18px 'Kanit'; }
+.src-name { font: 600 18px 'Chakra Petch'; }
 .src-state { font-weight: 600; color: var(--green); margin: 2px 0 4px; }
 .source-card.failed .src-state { color: var(--red); }
 .task-list { max-height: 360px; overflow-y: auto; font-size: 13px; }
@@ -186,7 +186,7 @@ main.wrap { padding-top: 12px; padding-bottom: 18px; }
 .pager { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 13px; }
 .pager-info { color: var(--muted); }
 .pager-links { display: flex; gap: 3px; }
-.pager-links a, .pager-links .gap { min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: #fff; font-family: 'Kanit'; }
+.pager-links a, .pager-links .gap { min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: #fff; font-family: 'Chakra Petch'; }
 .pager-links a:hover { border-color: var(--red); color: var(--red); }
 .pager-links a.on { background: var(--red); border-color: var(--red); color: #fff; }
 .pager-links a.off { pointer-events: none; opacity: .35; }

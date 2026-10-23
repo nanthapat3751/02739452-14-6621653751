@@ -70,7 +70,8 @@ docker compose up -d --build
 |-------|-----|------|
 | Airflow UI | http://localhost:8080 | ตาม `_AIRFLOW_WWW_USER_USERNAME` / `_AIRFLOW_WWW_USER_PASSWORD` ใน `.env` |
 | Dashboard | http://localhost:8501 | - |
-| PostgreSQL (ข้อมูลฟุตบอล) | `localhost:5433` | ตาม `FOOTBALL_DB_*` ใน `.env` |
+| Adminer (ดูตารางใน PostgreSQL ผ่านเว็บ) | http://localhost:8082 | System: PostgreSQL, Server: `football-db`, User/Password/Database ตาม `FOOTBALL_DB_*` ใน `.env` |
+| PostgreSQL (ข้อมูลฟุตบอล) | `localhost:5433` (พอร์ตฐานข้อมูล ไม่ใช่หน้าเว็บ — ใช้ DBeaver/pgAdmin/psql) | ตาม `FOOTBALL_DB_*` ใน `.env` |
 
 DAG `football_multi_source_pipeline` ถูก unpause อัตโนมัติและรันทุก 6 ชั่วโมง หรือกด ▶ Trigger DAG ใน Airflow UI ได้ทันที (รอบแรก ~2 นาที เพราะ Football-Data free tier จำกัด 10 requests/นาที)
 

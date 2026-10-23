@@ -122,6 +122,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # หน้าเว็บดูข้อมูลใน PostgreSQL (http://localhost:8082) — ล็อกอินด้วยค่า FOOTBALL_DB_* ใน .env
+  adminer:
+    image: adminer:4.8.1
+    environment:
+      ADMINER_DEFAULT_SERVER: football-db
+      ADMINER_DESIGN: pepa-linha
+    ports:
+      - "8082:8080"
+    depends_on:
+      football-db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   airflow-db-volume:
   football-db-volume:
