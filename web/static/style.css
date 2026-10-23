@@ -1,6 +1,8 @@
 :root {
-  --red: #d71920; --red-dark: #a8121a; --ink: #1b1b1b; --ink-2: #2b2b2b;
-  --bg: #f3f4f6; --card: #ffffff; --line: #e6e7ea; --muted: #6b7280;
+  /* Royal purple: ม่วงเข้ม + ชมพู (accent) + เขียวนีออน (highlight) */
+  --red: #e90052; --red-dark: #c40046; --ink: #1d0020; --ink-2: #37003c;
+  --purple: #37003c; --neon: #00ff85;
+  --bg: #f6f2f7; --card: #ffffff; --line: #ebe3ed; --muted: #6e6272;
   --green: #0a8f3c; --amber: #d98e04; --blue: #1f6feb;
 }
 * { box-sizing: border-box; }
@@ -13,11 +15,12 @@ h1, h2, h3, .brand, .mainnav, .leaguebar, .kpi-value, .card-head, .day-head, th 
 .small { font-size: 11.5px; }
 
 /* ---------- header (แถบแดงแบบ Siamsport) ---------- */
-.topbar { background: var(--red); color: #fff; }
+.topbar { background: var(--purple); color: #fff; border-bottom: 3px solid var(--neon); }
 .topbar-inner { display: flex; align-items: center; gap: 18px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 26px; letter-spacing: .5px; }
-.brand-ball { background: #fff; border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; font-size: 22px; }
-.brand-text { font-weight: 500; } .brand-text b { font-weight: 700; color: #ffd400; }
+.brand-mark { width: 40px; height: 40px; display: block; }
+.brand-text { font-weight: 400; letter-spacing: -.5px; line-height: 1; } .brand-text b { font-weight: 600; color: var(--neon); }
+.brand-text small { display: block; font: 400 10.5px 'Sarabun'; letter-spacing: 2.5px; text-transform: uppercase; opacity: .75; margin-top: 3px; }
 .tagline { opacity: .9; font-size: 14px; flex: 1; }
 .run-chip { background: rgba(0,0,0,.25); padding: 6px 12px; border-radius: 99px; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .run-chip i { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; display: inline-block; }
@@ -195,3 +198,20 @@ main.wrap { padding-top: 12px; padding-bottom: 18px; }
   .match { grid-template-columns: 1fr 56px 1fr; }
   .filterbar .srcs { flex-wrap: wrap; }
 }
+
+/* ---------- Royal purple overrides ---------- */
+.mainnav a.active { border-bottom-color: var(--neon); }
+.run-chip { background: rgba(255,255,255,.12); }
+.run-chip i { background: var(--neon); }
+.chip input:checked + span { background: var(--purple); border-color: var(--purple); }
+.mini-tabs a.on, .leaguebar a.active, .pager-links a.on { background: var(--red); border-color: var(--red); }
+.kpi { border-top-color: var(--red); }
+.score { background: var(--purple); }
+.scorer-list .rank { background: var(--purple); }
+.scorer-list li:first-child .rank { background: var(--red); }
+.tbl tbody tr:hover { background: #fbf3f8; }
+.footer { background: var(--ink); }
+.crest { color: var(--purple); background: #f3ecf5; border-color: #e4d7e8; }
+.lg.top { background: var(--neon); }
+.tbl tr.top td.pos, .tbl tr.top td:first-child { box-shadow: inset 4px 0 0 var(--neon); }
+.src-siamsport { background: var(--red); } .src-ballthai { background: #0a8f3c; } .src-football-data { background: #3d5afe; }
