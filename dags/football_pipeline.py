@@ -330,6 +330,13 @@ def football_pipeline():
             SELECT DISTINCT ON (league_code, utc_date, lower(home_team), lower(away_team)) *, NULL
             FROM stg_matches WHERE run_id = %s
             ORDER BY league_code, utc_date, lower(home_team), lower(away_team)""", (run_id,))
+        # ทดสอบเส้นทาง DQ ไม่ผ่าน: Trigger DAG w/ config {"inject_bad_rows": true}
+        if (get_current_context()["dag_run"].conf or {}).get("inject_bad_rows"):
+            cur.execute("""
+                INSERT INTO mrg_standings (league_code, season, team_key, team_name, team_name_th, position,
+                    played, won, draw, lost, goals_for, goals_against, goal_diff, points, sources, n_sources)
+                VALUES ('EPL', %s, 'test_bad_row', 'TEST BAD ROW', NULL, 99, 5, 1, 1, 1, -2, 3, 9, 40, 'test', 1)
+            """, (fs.current_season(),))
         conn.commit()
         cur.execute("SELECT (SELECT count(*) FROM mrg_standings), (SELECT count(*) FROM mrg_scorers), "
                     "(SELECT count(*) FROM mrg_matches)")
