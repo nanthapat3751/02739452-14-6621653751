@@ -23,7 +23,7 @@
 
 ```
                  ┌─ TaskGroup football_data : extract[5 ลีก] (Dynamic Task Mapping) → transform → load ─┐
-create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dynamic Task Mapping) → transform → load ─┤──> merge_dedup ──> quality_check ─┬─> dq_passed ──────────┬─> publish ─> record_run
+create_tables ──>├─ TaskGroup siamsport     : extract[6 ลีก] (Dynamic Task Mapping) → transform → load ─┤──> merge_dedup ──> quality_check ─┬─> dq_passed ──────────┬─> publish ─> record_run
                  └─ TaskGroup ballthai      : extract → transform → load ─────────────────────────────┘   (all_done)        (Branch)      └─> quarantine_bad_rows ┘
 ```
 
@@ -46,9 +46,10 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 ├── web/
 │   ├── app.py                 # Flask dashboard (query PostgreSQL โดยตรงด้วย psycopg2)
 │   ├── templates/             # หน้าเว็บ (Jinja2) : หน้าแรก, ตารางคะแนน, ดาวซัลโว, ผลบอล, สถานะระบบ
-│   ├── static/style.css
+│   ├── static/                # style.css, cmdk.js (ค้นหา Ctrl+K), logo.svg
 │   ├── Dockerfile
 │   └── requirements.txt
+├── docs/                      # PDF สรุปงาน + ภาพหน้าจอ
 ├── Dockerfile                 # Airflow image + requirements.txt
 ├── docker-compose.yml
 ├── requirements.txt           # ไลบรารีของ DAG
@@ -62,9 +63,14 @@ create_tables ──>├─ TaskGroup siamsport     : extract[5 ลีก] (Dyna
 ```bash
 git clone https://github.com/nanthapat3751/02739452-14-6621653751.git
 cd 02739452-14-6621653751
-cp .env.example .env        # แล้วใส่ FOOTBALL_DATA_API_KEY (สมัครฟรีที่ football-data.org) และตั้งรหัสผ่าน
+cp .env.example .env        # ใส่ FOOTBALL_DATA_API_KEY (สมัครฟรีที่ football-data.org) และเปลี่ยนรหัสผ่านได้ตามต้องการ
 docker compose up -d --build
 ```
+
+> ใช้ค่าใน `.env.example` ได้ทันทีโดยไม่ต้องแก้ — ล็อกอิน Airflow ด้วย `airflow` / `change_me` และฐานข้อมูล `football` / `change_me` (ถ้าเปลี่ยนใน `.env` ให้ใช้ค่าใหม่)
+> รอประมาณ 1–2 นาทีให้ Airflow ขึ้นและ DAG รันรอบแรกเสร็จ แล้วเปิด Dashboard
+
+หยุดระบบ: `docker compose down` (เพิ่ม `-v` ถ้าต้องการลบข้อมูลทั้งหมด)
 
 | บริการ | URL | บัญชี |
 |-------|-----|------|
@@ -77,6 +83,14 @@ DAG `football_multi_source_pipeline` ถูก unpause อัตโนมัต�
 
 > ถ้าไม่ใส่ `FOOTBALL_DATA_API_KEY` task ของ football_data จะ fail แต่ DAG ยังรวมข้อมูลจาก Siamsport + Ballthai ได้ (ตัวอย่างของกรณีแหล่งข้อมูลล่ม)
 
+ทดสอบกรณีต่าง ๆ (Airflow → ▶ Trigger DAG w/ config):
+
+| config | ผลที่ควรเห็น |
+|--------|-------------|
+| `{}` | รันปกติ |
+| `{"fail_sources": ["siamsport"]}` | แหล่ง siamsport ล่ม แต่ DAG ยังรวมแหล่งที่เหลือและ publish ได้ |
+| `{"inject_bad_rows": true}` | ใส่แถวเสียทดสอบ → `quality_check` แตกไป `quarantine_bad_rows` และแถวเสียไปอยู่ใน `dq_quarantine` |
+
 ตรวจ UPSERT (รันซ้ำแล้วจำนวนแถวไม่เพิ่ม):
 
 ```bash
@@ -85,15 +99,15 @@ docker compose exec football-db psql -U football -d football -c "select (select 
 
 ## Dashboard (http://localhost:8501)
 
-ออกแบบโทนแดง-ดำ แบบเว็บข่าวกีฬา มีเมนูด้านบนแบ่งหน้า + แท็บเลือกลีก
+ธีม Royal purple (ม่วง-ชมพู-เขียวนีออน) ฟอนต์ Chakra Petch + IBM Plex Sans Thai เลย์เอาต์แบบ Bento (หน้าเดียวจบ ไม่ต้องเลื่อนยาว) มีเมนูด้านบนแบ่งหน้า + แท็บเลือกลีก
 
 | หน้า | เนื้อหา |
 |-----|--------|
-| **หน้าแรก** `/` | KPI (ทีม, ประตูรวม, ผลบอล, ดาวซัลโว, ทีมที่ยืนยันจาก 2 แหล่ง), ตารางคะแนนย่อทุกลีก, ดาวซัลโว Top 10, กราฟประตูเฉลี่ยต่อนัดแยกลีก, ผลบอลล่าสุด |
-| **ตารางคะแนน** `/standings` | แท็บ 7 ลีก, ตารางคะแนนเต็ม (โซนอันดับ, แหล่งข้อมูลของแต่ละแถว), KPI จ่าฝูง/เกมรุก/เกมรับ, กราฟแต้ม, กราฟประตูได้-เสีย |
-| **ดาวซัลโว** `/scorers` | ทุกลีก/แยกลีก, Top N, กราฟประตู+แอสซิสต์, ตาราง |
-| **ผลบอล** `/matches` | ผลการแข่งขันแยกตามวัน, กรองผล (เจ้าบ้านชนะ/เสมอ/ทีมเยือนชนะ), กราฟประตูเฉลี่ยต่อ matchday, สัดส่วนผล |
-| **สถานะระบบ** `/pipeline` | สถานะแต่ละแหล่งในรอบล่าสุด, ประวัติการรัน, จำนวนแถว, สถานะทุก task, แถวที่ไม่ผ่าน DQ (โบนัส) |
+| **หน้าแรก** `/` | KPI (ทีม, ประตูรวม, ผลบอล, ดาวซัลโว, ทีมที่ยืนยันจาก 2 แหล่ง), การ์ดตารางคะแนน (แท็บสลับลีก Top 10), ดาวซัลโว Top 7, กราฟประตูเฉลี่ยต่อนัดแยกลีก, ผลบอลล่าสุด |
+| **ตารางคะแนน** `/standings` | แท็บ 7 ลีก, ตารางคะแนน 10 ทีม/หน้า (โซนอันดับ, แหล่งข้อมูลของแต่ละแถว), KPI จ่าฝูง/เกมรุก/เกมรับ, กราฟแต้ม, กราฟประตูได้-เสีย |
+| **ดาวซัลโว** `/scorers` | ทุกลีก/แยกลีก, ตาราง 10 คน/หน้า, กราฟ Top 10 ประตู+แอสซิสต์ |
+| **ผลบอล** `/matches` | ผลการแข่งขันแยกตามวัน 10 นัด/หน้า, กรองผล (เจ้าบ้านชนะ/เสมอ/ทีมเยือนชนะ), กราฟประตูเฉลี่ยต่อ matchday, สัดส่วนผล |
+| **สถานะระบบ** `/pipeline` | สถานะแต่ละแหล่งในรอบล่าสุด, ประวัติการรัน (6 รอบ/หน้า), จำนวนแถวตามแหล่ง, สถานะทุก task, แถวที่ไม่ผ่าน DQ (5 แถว/หน้า) — โบนัส |
 
 **ตัวกรอง** (ทุกหน้า): ฤดูกาล, แหล่งข้อมูล (football-data / siamsport / ballthai), ลีก และแบ่งหน้า (pagination)
 
