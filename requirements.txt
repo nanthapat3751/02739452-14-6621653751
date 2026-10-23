@@ -1,0 +1,5 @@
+# ไลบรารีเพิ่มเติมสำหรับ DAG (ติดตั้งใน image Airflow ผ่าน Dockerfile)
+requests==2.32.3
+beautifulsoup4==4.12.3
+apache-airflow-providers-postgres
+psycopg2-binary

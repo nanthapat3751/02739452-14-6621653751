@@ -1,0 +1,127 @@
+name: football-pipeline
+
+x-airflow-common: &airflow-common
+  build: .
+  image: football-airflow:2.10.4
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: Asia/Bangkok
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: 30
+    # การเชื่อมต่อฐานข้อมูลปลายทาง (Airflow connection id = football_db)
+    AIRFLOW_CONN_FOOTBALL_DB: postgresql://${FOOTBALL_DB_USER:-football}:${FOOTBALL_DB_PASSWORD:-football}@football-db:5432/${FOOTBALL_DB_NAME:-football}
+    FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./config:/opt/airflow/config
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    airflow-db:
+      condition: service_healthy
+    football-db:
+      condition: service_healthy
+
+services:
+  # metadata ของ Airflow
+  airflow-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ฐานข้อมูลปลายทางของข้อมูลฟุตบอล (dashboard อ่านจากที่นี่โดยตรง)
+  football-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${FOOTBALL_DB_USER:-football}
+      POSTGRES_PASSWORD: ${FOOTBALL_DB_PASSWORD:-football}
+      POSTGRES_DB: ${FOOTBALL_DB_NAME:-football}
+      TZ: Asia/Bangkok
+    ports:
+      - "5433:5432"
+    volumes:
+      - football-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${FOOTBALL_DB_USER:-football}"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /sources/logs /sources/dags /sources/plugins
+        chown -R "${AIRFLOW_UID:-50000}:0" /sources/{logs,dags,plugins}
+        exec /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    user: "0:0"
+    volumes:
+      - .:/sources
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  web:
+    build: ./web
+    image: football-dashboard:latest
+    environment:
+      DB_HOST: football-db
+      DB_PORT: 5432
+      DB_NAME: ${FOOTBALL_DB_NAME:-football}
+      DB_USER: ${FOOTBALL_DB_USER:-football}
+      DB_PASSWORD: ${FOOTBALL_DB_PASSWORD:-football}
+    ports:
+      - "8501:8501"
+    depends_on:
+      football-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  airflow-db-volume:
+  football-db-volume:
